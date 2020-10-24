@@ -113,19 +113,17 @@ summary(MA.random.ANCOVA)
 #                             Method 4:  Trowman approach
 #----------------------------------------------------------------------------------------------
 
-# Use the long data format for this analysis 
-
-# using lme4
+# Long data format is needed for this analysis 
+# Using lme4
 res.lmer <- lmer(MeanFU ~ MeanBaseline + group + (1 | ID), weights =NCFB,  data=data.AD)
 summary(res.lmer)
 
-#using nlme
+# Using nlme
 res.lme <- lme(MeanFU ~ MeanBaseline + group , random =~1| ID, weights = varFixed(~I(1/NCFB)), data=data.AD)
 summary(res.lme)
 intervals(res.lme, which="fixed")
 
-## Trowman method with interaction
-
+# Trowman method with interaction
 res.lmerINT <- lmer(MeanFU ~ MeanBaseline + group + MeanBaseline*group + (1 | ID), weights =NCFB, data=data.AD)
 summary(res.lmerINT)
 
@@ -138,12 +136,10 @@ intervals(res.lmeINT, which="fixed")
 #                              Method 5:  Modified Trowman approach
 #----------------------------------------------------------------------------------------------
 diff <- with(data.AD_wide, MeanBaseline_0-MeanBaseline_1)
-modified.fixed <-  rma(m1i=MeanFU_1, m2i=MeanFU_0, sd1i=sdFU_1, sd2i=sdFU_0, n1i=NCFB_1, n2i=NCFB_0,
-                       measure="MD", mods=~diff, method="FE", data=data.AD_wide, knha=TRUE)
+modified.fixed <-  rma(m1i=MeanFU_1, m2i=MeanFU_0, sd1i=sdFU_1, sd2i=sdFU_0, n1i=NCFB_1, n2i=NCFB_0, measure="MD", mods=~diff, method="FE", data=data.AD_wide, knha=TRUE)
 summary(modified.fixed)
 
 # Modified Trowman with interaction
-
 modified.fixed.INT <- rma(m1i=MeanFU_1, m2i=MeanFU_0, sd1i=sdFU_1, sd2i=sdFU_0, n1i=NCFB_1, n2i=NCFB_0,
                           measure="MD", mods=~diff + MeanBaseline_1, method="FE", data=data.AD_wide, khna=TRUE)
 summary(modified.fixed.INT)
@@ -160,7 +156,7 @@ summary(modified.fixed.INT)
 #                             First generate the pseudo IPD and then fit mixed effects models
 #----------------------------------------------------------------------------------------------------------------------------
 
-# Use data in long format: data.AD
+# Data in long format: data.AD
 
 # Generate the pseudo baselines and outcomes
 data.IPD <- data.frame(study         = rep(data.AD$ID, data.AD$NCFB),
@@ -199,7 +195,6 @@ data.IPD2     <- rbind( data.IPD2, data.frame(datatmp,cor.ytmp,resid,Resid))
 }  
 } 
 head(data.IPD2)  
-tail(data.IPD2)
 
 # temporary variable needed to generate the pseudo baseline and pseudo follow-up outcomes
 data.IPD2$ytmp3 <- data.IPD2$ytmp1*data.IPD2$correlation + sqrt(1-data.IPD2$correlation^2)*data.IPD2$resid/sqrt(1-data.IPD2$cor.ytmp^2)
@@ -207,9 +202,9 @@ data.IPD2$ytmp3 <- data.IPD2$ytmp1*data.IPD2$correlation + sqrt(1-data.IPD2$corr
 data.IPD2$y1    <- data.IPD2$ytmp1*data.IPD2$sdBaseline + data.IPD2$meanBaseline
 data.IPD2$y2    <- data.IPD2$ytmp3*data.IPD2$sdPost + data.IPD2$meanPost
 
-# make new dataset, with only relevant variables
+# Make new dataset, with only relevant variables
 data.pseudoIPD <- data.IPD2[,c("study", "group", "y1", "y2")]
-#View(data.pseudoIPD) # final pseudo IPD dataset 
+# View(data.pseudoIPD) # final pseudo IPD set
 rm(data.IPD2,data.IPD)
 
 # Check the mean and sd of y1 and y2, and correlation y1, y2
@@ -222,42 +217,33 @@ check <-cbind(aggregate(y1~group+study, data=data.pseudoIPD, mean),
 colnames(check)<- c(colnames(check)[1:2], "meany1", "meany2","sdy1", "sdy2","cory1y2")
 check
 rm(check)
-
-
 # Pre-step to calculate centered baseline values by study
 data.pseudoIPD$meany1bystudy <- ave(data.pseudoIPD$y1, data.pseudoIPD$study)
 data.pseudoIPD$y1center      <- data.pseudoIPD$y1 - data.pseudoIPD$meany1bystudy
 data.pseudoIPD$groupcenter   <- data.pseudoIPD$group - 0.5
 data.pseudoIPD$arm           <- 1000*data.pseudoIPD$study + data.pseudoIPD$group
 
-
 #----------------------------------------------------------------------------------------------
 #                       One-stage pseusdo IPD models 
 #----------------------------------------------------------------------------------------------
 ctrl <- lmeControl(opt="optim", msMaxIter=100)
-
 #-----------------------------------------------------------------------------------------------
 # Study stratified intercept and random treatment effect ANCOVA main effect
 
 # arm and study specific variances estimated  
 FRstudyarm    <- lme(fixed=y2 ~ y1center + group + as.factor(study) + y1center*as.factor(study), random= ~ -1 + groupcenter|study,
-                     weights =varIdent(form=~study|arm), control=ctrl,
-                     data=data.pseudoIPD, method='REML')
+                     weights =varIdent(form=~study|arm), control=ctrl, data=data.pseudoIPD, method='REML')
 
 # study specific variances estimated 
 FRstudy       <-  lme(fixed=y2 ~ y1center+ group + as.factor(study) + y1center*as.factor(study) , random= ~ -1 + groupcenter|study,
-                      weights =varIdent(form=~1|study), control=ctrl,
-                      data=data.pseudoIPD, method='REML')
+                      weights =varIdent(form=~1|study), control=ctrl, data=data.pseudoIPD, method='REML')
 
 # gruop specific variance estimated 
 FRgroup      <-   lme(fixed=y2 ~ y1center + group+ as.factor(study) + y1center*as.factor(study) , random= ~ -1 + groupcenter|study,
-                      weights =varIdent(form=~1|group), control=ctrl,
-                      data=data.pseudoIPD, method='REML')
+                      weights =varIdent(form=~1|group), control=ctrl, data=data.pseudoIPD, method='REML')
 
-#one residual variance estimated
-FRone        <-   lme(fixed=y2 ~ y1center + group + as.factor(study) + y1center*as.factor(study) , random= ~-1 + groupcenter|study,
-                      control=ctrl, data=data.pseudoIPD, method='REML')
-
+# one residual variance estimated
+FRone        <-   lme(fixed=y2 ~ y1center + group + as.factor(study) + y1center*as.factor(study) , random= ~-1 + groupcenter|study,  control=ctrl, data=data.pseudoIPD, method='REML')
 
 # Function to collect the results per model calculating Wald-type CIs
 groupeffect <- function(results)
@@ -291,24 +277,19 @@ groupeffect(FRone)
 
 # arm and study specific variances estimated
 FRstudyarmInt <- lme(fixed=y2 ~ y1center*as.factor(study) + y1center*group + group:meany1bystudy, random= ~ -1 + groupcenter|study,
-                     weights =varIdent(form=~study|arm), control=ctrl,
-                     data=data.pseudoIPD, method='REML')
+                     weights =varIdent(form=~study|arm), control=ctrl,  data=data.pseudoIPD, method='REML')
 
 # study specific variances estimated  
 FRstudyInt   <-   lme(fixed=y2 ~ y1center*as.factor(study) + y1center*group + group:meany1bystudy, random= ~ -1 + groupcenter|study,
-                      weights =varIdent(form=~1|study), control=ctrl,
-                      data=data.pseudoIPD, method='REML')
+                      weights =varIdent(form=~1|study), control=ctrl,  data=data.pseudoIPD, method='REML')
 
 # group specific variances estimate
 FRgroupInt   <-   lme(fixed=y2 ~ y1center*as.factor(study) + y1center*group + group:meany1bystudy, random= ~ -1 + groupcenter|study,
-                      weights =varIdent(form=~1|group), control=ctrl,
-                      data=data.pseudoIPD, method='REML')
+                      weights =varIdent(form=~1|group), control=ctrl, data=data.pseudoIPD, method='REML')
 
 # one residual variance estimated
 FRoneInt     <-   lme(fixed=y2 ~ y1center*as.factor(study) + y1center*group + group:meany1bystudy , random= ~ -1 + groupcenter|study,
-                      control=ctrl,data=data.pseudoIPD, method='REML')
-
-
+                      control=ctrl, data=data.pseudoIPD, method='REML')
 # Function to collect the within-trial interactions results per model using Wald-type CIs
 within_trial <- function(results)
 {inteff <- summary(results)$tTable["y1center:group",]
