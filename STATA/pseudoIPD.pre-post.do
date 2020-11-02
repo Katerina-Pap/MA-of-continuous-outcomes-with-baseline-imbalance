@@ -6,6 +6,7 @@
 *----------------------------------------------------------------------------------------------------------------------------
 
 import excel "Trowman_withNAs.xlsx", sheet("Trowman_withNAs") firstrow clear
+
 *----------------------------------------------------------------------------------------------------------------------------
 *                       Start algebraic calculations and imputations of values  
 *----------------------------------------------------------------------------------------------------------------------------
@@ -16,8 +17,7 @@ replace MeanFU = MeanCFB + MeanBaseline if MeanFU==.
 * calculate change score values from baseline and follow-up
 replace MeanCFB = MeanFU - MeanBaseline if MeanCFB==.
 
-** Calculate missing standard deviations from standard errors and vice versa
-
+* Calculate missing standard deviations from standard errors and vice versa
 * Calculate SD from SE 
 replace sdBaseline =   seBaseline*sqrt(NCFB) if sdBaseline ==.
 replace sdFU        =  seFU*sqrt(NCFB) if sdFU ==.
@@ -40,8 +40,6 @@ replace seBaseline     =  sdBaseline/sqrt(NCFB) if seBaseline ==.
 replace seFU           =  sdFU/sqrt(NCFB) if seFU ==.
 replace sdCFB          =  sqrt(sdBaseline^2+sdFU^2-2*Correlation*sdBaseline*sdFU) if sdCFB ==.
 replace seCFB          =  sdCFB/sqrt(NCFB) if seCFB ==.
-
-*----------------------------------------------------------------------------------------------------------------------------
 
 *----------------------------------------------------------------------------------------------------------------------------
 *             Perform (standard) AD approaches, Follow-up analysis, Change scores analysis 
@@ -76,7 +74,7 @@ generate sdpooledF =  sqrt(((NCFB1 - 1)*sdFU1^2 + (NCFB0 - 1)*sdFU0^2)/(NCFB1+NC
 * Calculate ancova estimate using formula from Senn et al. 2007
 * using the pooled correlation 
 
-generate ripooled = (NCFB1*Correlation1*sdBaseline1*sdFU1 +  NCFB0*Correlation0 *sdBaseline0*sdFU0)   ///
+generate ripooled = (NCFB1*Correlation1*sdBaseline1*sdFU1 +  NCFB0*Correlation0 *sdBaseline0*sdFU0)  ///
                  /((NCFB1+NCFB0)*sdpooledB*sdpooledF)
 
 generate ancova_est  =  (MeanFU1-MeanFU0)-ripooled*(sdpooledF/sdpooledB)*(MeanBaseline1-MeanBaseline0)
@@ -139,16 +137,16 @@ replace ytmp2 = (ytmp2 - mean_ytmp2) / sd_ytmp2
 * check
 *by ID group: tabstat ytmp1 ytmp2, stat(mean sd)
 
-* correlation between y1tmp and y2tmp
+* Correlation between y1tmp and y2tmp
 bysort ID group : egen corrtmp = corr(ytmp1 ytmp2)
-*check
+* Check
 by ID group: tabstat corrtmp
 
-* calculate residual of regression of ytmp2 on ytmp1
+* Calculate residual of regression of ytmp2 on ytmp1
 gen resid = ytmp2-corrtmp*ytmp1
-* generate ytmp3 with sd(ytmp3) = 1, cor(ytmp3, ytmp1) = observed correlation
+* Generate ytmp3 with sd(ytmp3) = 1, cor(ytmp3, ytmp1) = observed correlation
 generate ytmp3 = ytmp1*Correlation + sqrt(1-Correlation^2)*resid/sqrt(1-corrtmp^2)
-* generate pseudo baseline and pseudo follow-up outcomes
+* Generate pseudo baseline and pseudo follow-up outcomes
 generate y1    = ytmp1*sdBaseline + MeanBaseline
 * y1 now has mean and sd of original data
 generate y2    = ytmp3*sdFU + MeanFU
@@ -158,7 +156,7 @@ generate y2    = ytmp3*sdFU + MeanFU
 bysort group:tabstat y1 y2,  statistics( mean sd )  by(ID)
 bysort group ID: corr(y1 y2)
 
-drop  ytmp1 ytmp2 mean_ytmp1 sd_ytmp1 mean_ytmp2 sd_ytmp2 corrtmp resid ytmp3
+drop ytmp1 ytmp2 mean_ytmp1 sd_ytmp1 mean_ytmp2 sd_ytmp2 corrtmp resid ytmp3
 
 * Pre-step to calculate centered baseline values by study
 egen meany1bystudy =  mean(y1), by(ID)
