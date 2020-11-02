@@ -7,7 +7,7 @@
 
 #----------------------------------------------------------------------------------------------------------------------------
 #                                   Important R libraries and 
-#                           data as reported, incl. missing values 
+#                              data as reported, incl. missing values 
 #----------------------------------------------------------------------------------------------------------------------------
 library(readxl)
 library(reshape2)
@@ -16,9 +16,9 @@ library(metafor)
 library(nlme)
 
 # Load Trowman example dataset 
-data.AD <- read_excel("F:/pseudo IPD ANCOVA/Trowman paper/For Saskia/Tosend_Oct17/Trowman_withNAs.xlsx")
+data.AD <- read_excel("Trowman_withNAs.xlsx")
 # Load apnea dataset
-data.AD <- read_excel("F:/pseudo IPD ANCOVA/Trowman paper/For Saskia/apnea_withNAs.xlsx")
+# data.AD <- read_excel("apnea_withNAs.xlsx")
 
 
 #----------------------------------------------------------------------------------------------------------------------------
@@ -57,9 +57,6 @@ data.AD$seFU           <- ifelse(is.na(data.AD$seFU), data.AD$sdFU/sqrt(data.AD$
 data.AD$sdCFB          <- ifelse(is.na(data.AD$sdCFB), sqrt(data.AD$sdBaseline^2+data.AD$sdFU^2-2*data.AD$Correlation*data.AD$sdBaseline*data.AD$sdFU), data.AD$sdCFB)
 data.AD$seCFB          <- ifelse(is.na(data.AD$seCFB), data.AD$sdCFB/sqrt(data.AD$NCFB), data.AD$seCFB)
 data.AD
-
-#----------------------------------------------------------------------------------------------------------------------------
-
 #----------------------------------------------------------------------------------------------------------------------------
 #             Perform (standard) AD approaches, Follow-up analysis, Change scores analysis 
 #                                  and recovering ANCOVA methods
@@ -125,9 +122,7 @@ res.lme <- lme(MeanFU ~ MeanBaseline + group , random =~1| ID, weights = varFixe
 summary(res.lme)
 intervals(res.lme, which="fixed")
 
-
 ggplot(data.AD, aes(x=MeanBaseline, y=MeanFU, size=NCFB)) + geom_point() + theme_bw()
-
 
 models <- list( 
   ind_lm = lm(MeanFU ~ MeanBaseline + group, data.AD),
@@ -327,7 +322,6 @@ data.pseudoIPD$y1center      <- data.pseudoIPD$y1 - data.pseudoIPD$meany1bystudy
 data.pseudoIPD$groupcenter   <- data.pseudoIPD$group - 0.5
 data.pseudoIPD$arm           <- 1000*data.pseudoIPD$study + data.pseudoIPD$group
 
-
 #----------------------------------------------------------------------------------------------
 #                       One-stage pseusdo IPD models 
 #----------------------------------------------------------------------------------------------
@@ -345,19 +339,6 @@ FRstudyarm    <- lme(fixed=y2 ~ y1center + group + as.factor(study) + y1center*a
 FRstudy       <-  lme(fixed=y2 ~ y1center+ group + as.factor(study) + y1center*as.factor(study) , random= ~ -1 + groupcenter|study,
                       weights =varIdent(form=~1|study), control=ctrl,
                       data=data.pseudoIPD, method='REML')
-
-
-# data <- transform(data.pseudoIPD,
-#                                obs=factor(1:nrow(data.pseudoIPD)),
-#                                studydummy=as.numeric(study=="1"))
-# 
-# res.lmer <- lmer(y2 ~ y1center+ group + as.factor(study) + y1center*as.factor(study) + (groupcenter|study) + (studydummy-1|obs),
-#                  data=data, method='REML', control=lmerControl(check.nobs.vs.nlev="ignore", check.nobs.vs.nRE="ignore"))
-# summary(res.lmer)
-
-
-weights = varFixed(~I(1/NCFB))
-res.lmer <- lmer(MeanFU ~ MeanBaseline + group + (1 | ID), weights =NCFB,  data=data.AD)
 
 # gruop specific variance estimated 
 FRgroup      <-   lme(fixed=y2 ~ y1center + group+ as.factor(study) + y1center*as.factor(study) , random= ~ -1 + groupcenter|study,
@@ -461,7 +442,6 @@ across_trial(FRstudyarmInt)
 across_trial(FRstudyInt)
 across_trial(FRgroupInt)
 across_trial(FRoneInt)
-
 
 #----------------------------------------------------------------------------------------------
 #                       Two-stage pseusdo IPD models 
