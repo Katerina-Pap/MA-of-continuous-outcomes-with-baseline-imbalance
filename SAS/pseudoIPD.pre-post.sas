@@ -36,17 +36,17 @@ data Trowman; set TrowmanNA;
 * calculate mean change from baseline from mean FU and mean baseline;
     if (MeanCFB=.)then MeanCFB=MeanFU-MeanBaseline;
    
- * calculate SD from se;
+* calculate SD from se;
                 if (sdBaseline=.) then
                                sdBaseline=(seBaseline)*sqrt(Nobs);
                 if (sdFU=.) then
                                sdFU=seFU*sqrt(Nobs);
                 if (sdCFB=.) then
                                sdCFB=(seCFB)*sqrt(Nobs);
-   * if missing sd post, we use sd post = sd baseline;
+ * if missing sd post, we use sd post = sd baseline;
     if (sdFU=.) then
                                sdFU=sdBaseline;
-   * calculate correlations; 
+ * calculate correlations; 
 	if (Correlation=.)then
                                Correlation=(sdBaseline**2+sdFU**2-sdCFB**2)/(2*sdBaseline*sdFU);
 run;
@@ -209,7 +209,6 @@ repeated diag;
 run;
 
 * Modified Trowman with treatment-baseline interaction*;
-
 data effect_est_mod; set TrowmanMod (keep= study diffFU var_diffFU diffBaseline MeanBaseline1); run; 
 
 * variances of the effect estimates, needed to perform random effects-meta analysis;
@@ -224,7 +223,6 @@ model diffFU=  diffBaseline MeanBaseline1/  solution cl;
 random study/gdata=effect_est_mod s; 
 repeated diag;
 run;
-
 
 *------------------------------------------------------------------------------
 *   			METHOD 6: Pseudo IPD approach 
@@ -244,7 +242,7 @@ data temp; set Trowman;
 run;
 
 proc sort data=temp;
-	   		by study group; run;
+by study group; run;
 
 * standardize ytmp1 and ytmp2;
 proc standard data=temp mean=0 std=1 out=temp2;
@@ -353,8 +351,7 @@ random groupcenter/subject=study type=vc s;
 repeated/group=study;
 run;
 * The variance of the random effect assumed for the interaction of treatment group with baseline was estimated at exactly zero thus it was 
-removed from the model.
-
+* removed from the model.
 
 title "Group specific variances, stratified study model";
 * group specific variances estimated;
