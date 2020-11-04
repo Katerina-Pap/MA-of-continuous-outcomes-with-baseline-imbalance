@@ -17,11 +17,9 @@ library(nlme)
 
 # Load Trowman example dataset 
 data.AD <- read_excel("Trowman_withNAs.xlsx")
-# Load apnea dataset
-# data.AD <- read_excel("apnea_withNAs.xlsx")
+# data.AD <- read_excel("apnea_withNAs.xlsx") # Load apnea dataset
 
-
-#----------------------------------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------------------
 #                       Start algebraic calculations and imputations of values  
 #----------------------------------------------------------------------------------------------------------------------------
 
@@ -45,10 +43,10 @@ data.AD$sdFU <- ifelse(is.na(data.AD$sdFU), data.AD$sdBaseline, data.AD$sdFU)
 data.AD$Correlation  <- ifelse(is.na(data.AD$Correlation), (data.AD$sdBaseline^2+data.AD$sdFU^2-data.AD$sdCFB^2)/(2*data.AD$sdBaseline*data.AD$sdFU),
                                data.AD$Correlation)
 
-data.AD$Correlation <- ifelse(is.na(data.AD$Correlation) & (data.AD$group=="0"), tapply(data.AD$Correlation, data.AD$group, median, na.rm=T)[1], 
+data.AD$Correlation  <- ifelse(is.na(data.AD$Correlation) & (data.AD$group=="0"), tapply(data.AD$Correlation, data.AD$group, median, na.rm=T)[1], 
                               data.AD$Correlation)
 
-data.AD$Correlation <- ifelse(is.na(data.AD$Correlation) & (data.AD$group=="1"), tapply(data.AD$Correlation, data.AD$group, median, na.rm=T)[2], 
+data.AD$Correlation  <- ifelse(is.na(data.AD$Correlation) & (data.AD$group=="1"), tapply(data.AD$Correlation, data.AD$group, median, na.rm=T)[2], 
                               data.AD$Correlation)
 
 # Calculate SE from SD
@@ -89,13 +87,13 @@ summary(MA.random.changescores)
 #----------------------------------------------------------------------------------------------
 
 # calculate pooled standard deviations of baseline and follow-up values
-sdpooledB<- with(data.AD_wide, sqrt((((NCFB_1 - 1)*(sdBaseline_1^2)) + (NCFB_0 - 1)*(sdBaseline_0^2))/((NCFB_1+NCFB_0)-2)))
-sdpooledF<- with(data.AD_wide, sqrt((((NCFB_1 - 1)*(sdFU_1^2)) + (NCFB_0 - 1)*(sdFU_0^2))/((NCFB_1+NCFB_0)-2)))
+sdpooledB <- with(data.AD_wide, sqrt((((NCFB_1 - 1)*(sdBaseline_1^2)) + (NCFB_0 - 1)*(sdBaseline_0^2))/((NCFB_1+NCFB_0)-2)))
+sdpooledF <- with(data.AD_wide, sqrt((((NCFB_1 - 1)*(sdFU_1^2)) + (NCFB_0 - 1)*(sdFU_0^2))/((NCFB_1+NCFB_0)-2)))
 
 # Calculate ancova estimate using formula from Senn et al. 2007
 # using the pooled correlation 
 
-ripooled <- with(data.AD_wide, ((NCFB_1*Correlation_1*sdBaseline_1*sdFU_1 +  NCFB_0*Correlation_0 *sdBaseline_0*sdFU_0) ) 
+ripooled       <- with(data.AD_wide, ((NCFB_1*Correlation_1*sdBaseline_1*sdFU_1 +  NCFB_0*Correlation_0 *sdBaseline_0*sdFU_0) ) 
                  /((NCFB_1+NCFB_0)*sdpooledB*sdpooledF))
 
 ancova_est     <- with(data.AD_wide, (MeanFU_1-MeanFU_0)-ripooled*(sdpooledF/sdpooledB)*(MeanBaseline_1-MeanBaseline_0))
@@ -122,99 +120,12 @@ res.lme <- lme(MeanFU ~ MeanBaseline + group , random =~1| ID, weights = varFixe
 summary(res.lme)
 intervals(res.lme, which="fixed")
 
-ggplot(data.AD, aes(x=MeanBaseline, y=MeanFU, size=NCFB)) + geom_point() + theme_bw()
-
-models <- list( 
-  ind_lm = lm(MeanFU ~ MeanBaseline + group, data.AD),
-  ind_svy_glm = svyglm(MeanFU ~ MeanBaseline + group, design=svydesign(id=~1, data=data.AD),
-                       family=gaussian() ),
-  ind_glm = glm(MeanFU ~ MeanBaseline + group, family=gaussian(), data=data.AD),
-  wei_lm  = lm(MeanFU ~ MeanBaseline + group, data=data.AD, weight=NCFB),
-  wei_glm = glm(MeanFU ~ MeanBaseline + group, data=data.AD, family=gaussian(), weight=NCFB),
-  svy_glm = svyglm(MeanFU ~ MeanBaseline + group, design=svydesign(id=~1, weights=~NCFB, data=data.AD),
-                   family=gaussian())
-)
-
-results <- do.call("rbind", lapply( names(models), function(n) cbind(model=n, tidy(models[[n]])) )) %>%
-  gather(stat, value, -model, -term)
-
-results %>% filter(stat=="estimate") %>% 
-  select(model, term, value) %>%
-  spread(term, value)
-
- 
-results %>% filter(stat=="std.error") %>% 
-  select(model, term, value) %>%
-  spread(term, value)
-
-# p-values
-results %>% filter(stat=="p.value") %>%
-  mutate(p=format.pval(value)) %>%
-  select(model, term, p) %>%
-  spread(term, p)
-
-
-
-models$wei_lm_fixed <- models$wei_lm
-models$wei_lm_fixed$df.residual <- with(models$wei_lm_fixed, sum(weights) - length(coefficients))
-
-results <- do.call("rbind", lapply( names(models), function(n) cbind(model=n, tidy(models[[n]])) )) %>%
-  gather(stat, value, -model, -term)
-
-
-# Coefficients
-results %>% filter(stat=="estimate") %>% 
-  select(model, term, value) %>%
-  spread(term, value)
-
-# Standard Errors
-results %>% filter(stat=="std.error") %>%
-  select(model, term, value) %>%
-  spread(term, value)
-
-
-mod <- glm(MeanFU ~ MeanBaseline + group, data = data.AD, weights = NCFB)
-
-robust_se <- function(model){
-  
-  # get parameters
-  x <- model.matrix(model)
-  n <- nrow(x)
-  k <- length(coef(model))
-  
-  dfc <- n / (n - k)
-  
-  # make sandwich
-  u <- model$residuals
-  bread <- solve(crossprod(x))
-  meat <- t(x) %*% (dfc * diag(u^2)) %*% x
-  v <- bread %*% meat %*% bread
-  
-  return(v)
-}
-lmtest::coeftest(mod, vcov = robust_se(mod))
-
-
-
-dstrat <- survey::svydesign(id = ~1, weights = ~NCFB, data = data.AD)
-y <- survey::svyglm(MeanFU ~ MeanBaseline + group,
-                    design = dstrat)
-lmtest::coeftest(y, vcov = robust_se(y))
-
-library(estimatr)
-lmout_cl <- lm_robust(MeanFU ~ MeanBaseline + group, data=data.AD, clusters=ID, se_type = "stata")
-summary(lmout_cl)
-
-library(margins)
-mar_int <- margins(lmout_cl, vce = "delta")
-summary(mar_int)
-
 ## Trowman method with interaction
 
 res.lmerINT <- lmer(MeanFU ~ MeanBaseline + group + MeanBaseline*group + (1 | ID), weights =NCFB, data=data.AD)
 summary(res.lmerINT)
 
-res.lmeINT <- lme(MeanFU ~ MeanBaseline + group + MeanBaseline*group , random =~1| ID, weights = varFixed(~I(1/NCFB)), data=data.AD, 
+res.lmeINT  <- lme(MeanFU ~ MeanBaseline + group + MeanBaseline*group , random =~1| ID, weights = varFixed(~I(1/NCFB)), data=data.AD, 
                   control=lmerControl(check.nobs.vs.nlev="ignore", check.nobs.vs.nRE="ignore"))
 summary(res.lmeINT)
 intervals(res.lmeINT, which="fixed")
@@ -238,7 +149,6 @@ yi <- c(MA.random.final$yi[1:8])
 vi <- MA.random.final$vi
 library(sae) # same as modified trowman
 va <- eblupFH(formula = yi ~ diff, vardir = vi, method = "REML")
-
 
 #----------------------------------------------------------------------------------------------
 #                                  Meta-regression 
@@ -290,8 +200,6 @@ Resid <- datatmp$ytmp2 - cor.ytmp*datatmp$ytmp1
 data.IPD2     <- rbind( data.IPD2, data.frame(datatmp,cor.ytmp,resid,Resid))
 }  
 } 
-head(data.IPD2)  
-tail(data.IPD2)
 
 # temporary variable needed to generate the pseudo baseline and pseudo follow-up outcomes
 data.IPD2$ytmp3 <- data.IPD2$ytmp1*data.IPD2$correlation + sqrt(1-data.IPD2$correlation^2)*data.IPD2$resid/sqrt(1-data.IPD2$cor.ytmp^2)
@@ -371,14 +279,8 @@ groupeffect(FRstudy)
 groupeffect(FRgroup)
 groupeffect(FRone)
 
-
 #-----------------------------------------------------------------------------------------------
 # Study stratified intercept and random treatment effect ANCOVA interaction effect
-
-# arm and study specific variances estimated  
-
-# the a*b interaction term includes also the main effects a and b
-# note, the error warning is because of the model is overparametrised
 
 # arm and study specific variances estimated
 FRstudyarmInt <- lme(fixed=y2 ~ y1center*as.factor(study) + y1center*group + group:meany1bystudy, random= ~ -1 + groupcenter|study,
@@ -463,7 +365,7 @@ two_stageMA <- data.frame(study=unique(data.pseudoIPD$study), coef_group=coef_an
                           secoef_group = se_ancova[,"group"])
 
 # Run aggregate meta-analysis 
-MA<- rma(yi=coef_group, sei=secoef_group, slab=study, method="REML", data=two_stageMA, knha=TRUE)
+MA <- rma(yi=coef_group, sei=secoef_group, slab=study, method="REML", data=two_stageMA, knha=TRUE)
 summary(MA); forest(MA)
 
 #----------------------------------------------------------------------------------------------
@@ -483,5 +385,5 @@ two_stageMA_int <- data.frame(study=unique(data.pseudoIPD$study), coef_group=coe
                               secoef_group = se_ancova_int[,"y1center:group"])
 
 # Run aggregate meta-analysis 
-MA_int<- rma(yi=coef_group,sei=secoef_group, slab=study, method="REML", data=two_stageMA_int)
+MA_int <- rma(yi=coef_group,sei=secoef_group, slab=study, method="REML", data=two_stageMA_int)
 summary(MA_int); forest(MA_int)
