@@ -8,5 +8,5 @@ We provide code to fit standard aggregate data approaches: follow-up scores and 
 
 ## Codes 
 * [R](https://github.com/Katerina-Pap/MA-of-continuous-outcomes-with-baseline-imbalance/blob/main/R/pseudoIPD.pre-post.R)
-* SAS
+* [SAS](https://github.com/Katerina-Pap/MA-of-continuous-outcomes-with-baseline-imbalance/blob/main/SAS/pseudoIPD.pre-post.sas)
 * Stata
