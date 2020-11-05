@@ -2,7 +2,7 @@
 *     STATA code supplementing " The impact of trial baseline imbalances should be considered in systematic reviews: 
 *     a methodological case study revisited
 *     Author: Katerina Papadimitropoulou/Saskia le Cessie
-*     Date: October 2020
+*     Date:   November 2020
 *----------------------------------------------------------------------------------------------------------------------------
 
 import excel "Trowman_withNAs.xlsx", sheet("Trowman_withNAs") firstrow clear
@@ -176,32 +176,32 @@ gen arm           = 1000*ID + group
 * Study stratified intercept and random treatment effect ANCOVA - Main effect
 *----------------------------------------------------------------------------- 
 *arm/study specific residual variances estimated 
-mixed y2 group y1center i.ID  i.ID##c.y1center|| ID: groupcenter, covariance(unstructured) resid(ind, by(arm)) noconstant reml
+mixed y2 group y1center i.ID  i.ID##c.y1center|| ID: groupcenter, covariance(unstructured) resid(ind, by(arm)) noconstant reml dfmethod(satterthwaite)
 
 *study specific residual variances estimated
-mixed y2 group y1center i.ID  i.ID##c.y1center|| ID:groupcenter, covariance(unstructured) resid(ind, by(ID)) noconstant reml
+mixed y2 group y1center i.ID  i.ID##c.y1center|| ID:groupcenter, covariance(unstructured) resid(ind, by(ID)) noconstant reml dfmethod(satterthwaite)
 
 *group specific residual variances estimated
-mixed y2 group y1center i.ID  i.ID##c.y1center|| ID:groupcenter, covariance(unstructured) resid(ind, by(group)) noconstant reml 
+mixed y2 group y1center i.ID  i.ID##c.y1center|| ID:groupcenter, covariance(unstructured) resid(ind, by(group)) noconstant reml dfmethod(satterthwaite)
 
 *one residual variance estimated estimated 
-mixed y2 group y1center i.ID  i.ID##c.y1center|| ID: groupcenter, var reml noconstant
+mixed y2 group y1center i.ID  i.ID##c.y1center|| ID: groupcenter, var reml noconstant dfmethod(satterthwaite)
 
 *-----------------------------------------------------------------------------------
 * Study stratified intercept and random treatment effect ANCOVA - Interaction effect
 *----------------------------------------------------------------------------------- 
 
 *arm/study specific residual variances with treatment-baseline interaction 
-mixed y2 group y1center i.ID  i.ID##c.y1center group##c.y1center group##c.meany1bystudy|| ID: groupcenter, covariance(unstructured) resid(ind, by(arm)) noconstant reml
+mixed y2 group y1center i.ID  i.ID##c.y1center group##c.y1center group##c.meany1bystudy|| ID: groupcenter, covariance(unstructured) resid(ind, by(arm)) noconstant reml dfmethod(satterthwaite)
 
 *study specific residual variances with treatment-baseline interaction
-mixed y2 group y1center i.ID  i.ID##c.y1center group##c.y1center group##c.meany1bystudy|| ID:groupcenter, covariance(unstructured) resid(ind, by(ID)) noconstant reml 
+mixed y2 group y1center i.ID  i.ID##c.y1center group##c.y1center group##c.meany1bystudy|| ID:groupcenter, covariance(unstructured) resid(ind, by(ID)) noconstant reml dfmethod(satterthwaite)
 
 *group specific residual variances with treatment-baseline interaction
-mixed y2 group y1center i.ID  i.ID##c.y1center group##c.y1center group##c.meany1bystudy|| ID:groupcenter, covariance(unstructured) resid(ind, by(group)) noconstant reml 
+mixed y2 group y1center i.ID  i.ID##c.y1center group##c.y1center group##c.meany1bystudy|| ID:groupcenter, covariance(unstructured) resid(ind, by(group)) noconstant reml dfmethod(satterthwaite) 
 
 *one residual variance estimated with treatment-baseline interaction
-mixed y2 group y1center i.ID  i.ID##c.y1center group##c.y1center group##c.meany1bystudy|| ID: groupcenter, var reml noconstant
+mixed y2 group y1center i.ID  i.ID##c.y1center group##c.y1center group##c.meany1bystudy|| ID: groupcenter, var reml noconstant dfmethod(satterthwaite)
 
 
 *----------------------------------------------------------------------------------------------
