@@ -2,7 +2,7 @@
 #     R code supplementing " The impact of trial baseline imbalances should be considered in systematic reviews: 
 #     a methodological case study revisited
 #     Author: Katerina Papadimitropoulou
-#     Date: October 2020
+#     Date:   November 2020
 #----------------------------------------------------------------------------------------------------------------------------
 
 #----------------------------------------------------------------------------------------------------------------------------
@@ -83,7 +83,7 @@ MA.random.changescores <- rma(m1i=MeanCFB_1, m2i=MeanCFB_0, sd1i=sdCFB_1, sd2i=s
 summary(MA.random.changescores)
 
 #----------------------------------------------------------------------------------------------
-#                             Method 3:  Recovering ANCOVA estimates approach
+#                           Method 3:  Recovering ANCOVA estimates approach
 #----------------------------------------------------------------------------------------------
 
 # calculate pooled standard deviations of baseline and follow-up values
@@ -106,31 +106,6 @@ MA.random.ANCOVA <- rma(yi=ancova_est , sei=se_ancovas_est , slab=data.AD$study,
 summary(MA.random.ANCOVA)
 
 #----------------------------------------------------------------------------------------------
-#                             Method 4:  Trowman approach
-#----------------------------------------------------------------------------------------------
-
-# Use the long data format for this analysis 
-
-# using lme4
-res.lmer <- lmer(MeanFU ~ MeanBaseline + group + (1 | ID), weights =NCFB,  data=data.AD)
-summary(res.lmer)
-
-#using nlme
-res.lme <- lme(MeanFU ~ MeanBaseline + group , random =~1| ID, weights = varFixed(~I(1/NCFB)), data=data.AD)
-summary(res.lme)
-intervals(res.lme, which="fixed")
-
-## Trowman method with interaction
-
-res.lmerINT <- lmer(MeanFU ~ MeanBaseline + group + MeanBaseline*group + (1 | ID), weights =NCFB, data=data.AD)
-summary(res.lmerINT)
-
-res.lmeINT  <- lme(MeanFU ~ MeanBaseline + group + MeanBaseline*group , random =~1| ID, weights = varFixed(~I(1/NCFB)), data=data.AD, 
-                  control=lmerControl(check.nobs.vs.nlev="ignore", check.nobs.vs.nRE="ignore"))
-summary(res.lmeINT)
-intervals(res.lmeINT, which="fixed")
-
-#----------------------------------------------------------------------------------------------
 #                              Method 5:  Modified Trowman approach
 #----------------------------------------------------------------------------------------------
 diff <- with(data.AD_wide, MeanBaseline_0-MeanBaseline_1)
@@ -150,12 +125,6 @@ vi <- MA.random.final$vi
 library(sae) # same as modified trowman
 va <- eblupFH(formula = yi ~ diff, vardir = vi, method = "REML")
 
-#----------------------------------------------------------------------------------------------
-#                                  Meta-regression 
-#----------------------------------------------------------------------------------------------
-# metareg <- rma(m1i=MeanFU_1, m2i=MeanFU_0, sd1i=sdFU_1, sd2i=sdFU_0, n1i=NCFB_1, n2i=NCFB_0,
-#                measure="MD", mods=~MeanBaseline_1, method="FE", data=data.AD_wide)
-# summary(metareg) 
 
 #----------------------------------------------------------------------------------------------------------------------------
 #                                         Method 6:  Pseudo IPD approach
