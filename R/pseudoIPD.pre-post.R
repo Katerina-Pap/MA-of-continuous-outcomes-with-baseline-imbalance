@@ -40,14 +40,11 @@ data.AD$sdCFB          <- ifelse(is.na(data.AD$sdCFB), data.AD$seCFB*sqrt(data.A
 data.AD$sdFU <- ifelse(is.na(data.AD$sdFU), data.AD$sdBaseline, data.AD$sdFU)
 
 # Calculate group correlations using Equation (B8) or impute from reported median correlations of the remaining studies
-data.AD$Correlation  <- ifelse(is.na(data.AD$Correlation), (data.AD$sdBaseline^2+data.AD$sdFU^2-data.AD$sdCFB^2)/(2*data.AD$sdBaseline*data.AD$sdFU),
-                               data.AD$Correlation)
+data.AD$Correlation    <- ifelse(is.na(data.AD$Correlation), (data.AD$sdBaseline^2+data.AD$sdFU^2-data.AD$sdCFB^2)/(2*data.AD$sdBaseline*data.AD$sdFU), data.AD$Correlation)
 
-data.AD$Correlation  <- ifelse(is.na(data.AD$Correlation) & (data.AD$group=="0"), tapply(data.AD$Correlation, data.AD$group, median, na.rm=T)[1], 
-                              data.AD$Correlation)
+data.AD$Correlation    <- ifelse(is.na(data.AD$Correlation) & (data.AD$group=="0"), tapply(data.AD$Correlation, data.AD$group, median, na.rm=T)[1], data.AD$Correlation)
 
-data.AD$Correlation  <- ifelse(is.na(data.AD$Correlation) & (data.AD$group=="1"), tapply(data.AD$Correlation, data.AD$group, median, na.rm=T)[2], 
-                              data.AD$Correlation)
+data.AD$Correlation    <- ifelse(is.na(data.AD$Correlation) & (data.AD$group=="1"), tapply(data.AD$Correlation, data.AD$group, median, na.rm=T)[2], data.AD$Correlation)
 
 # Calculate SE from SD
 data.AD$seBaseline     <- ifelse(is.na(data.AD$seBaseline), data.AD$sdBaseline/sqrt(data.AD$NCFB), data.AD$seBaseline)
@@ -79,7 +76,6 @@ summary(MA.random.final)
 
 MA.random.changescores <- rma(m1i=MeanCFB_1, m2i=MeanCFB_0, sd1i=sdCFB_1, sd2i=sdCFB_0, n1i=NCFB_1, n2i=NCFB_0,
                               data=data.AD_wide, measure="MD", knha=TRUE)
-
 summary(MA.random.changescores)
 
 #----------------------------------------------------------------------------------------------
@@ -124,7 +120,6 @@ yi <- c(MA.random.final$yi[1:8])
 vi <- MA.random.final$vi
 library(sae) # same as modified trowman
 va <- eblupFH(formula = yi ~ diff, vardir = vi, method = "REML")
-
 
 #----------------------------------------------------------------------------------------------------------------------------
 #                                         Method 6:  Pseudo IPD approach
@@ -223,8 +218,7 @@ FRgroup      <-   lme(fixed=y2 ~ y1center + group+ as.factor(study) + y1center*a
                       data=data.pseudoIPD, method='REML')
 
 #one residual variance estimated
-FRone        <-   lme(fixed=y2 ~ y1center + group + as.factor(study) + y1center*as.factor(study) , random= ~-1 + groupcenter|study,
-                      control=ctrl, data=data.pseudoIPD, method='REML')
+FRone        <-   lme(fixed=y2 ~ y1center + group + as.factor(study) + y1center*as.factor(study) , random= ~-1 + groupcenter|study, control=ctrl, data=data.pseudoIPD, method='REML')
 
 
 # Function to collect the results per model calculating Wald-type CIs
