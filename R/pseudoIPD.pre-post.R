@@ -40,12 +40,14 @@ data.AD$sdCFB          <- ifelse(is.na(data.AD$sdCFB), data.AD$seCFB*sqrt(data.A
 data.AD$sdFU <- ifelse(is.na(data.AD$sdFU), data.AD$sdBaseline, data.AD$sdFU)
 
 # Calculate group correlations using Equation (B8) or impute from reported median correlations of the remaining studies
-data.AD$Correlation    <- ifelse(is.na(data.AD$Correlation), (data.AD$sdBaseline^2+data.AD$sdFU^2-data.AD$sdCFB^2)/(2*data.AD$sdBaseline*data.AD$sdFU), data.AD$Correlation)
+data.AD$Correlation    <- ifelse(is.na(data.AD$Correlation), (data.AD$sdBaseline^2+data.AD$sdFU^2-data.AD$sdCFB^2)/(2*data.AD$sdBaseline*data.AD$sdFU), 
+                                    data.AD$Correlation)
 
-data.AD$Correlation    <- ifelse(is.na(data.AD$Correlation) & (data.AD$group=="0"), tapply(data.AD$Correlation, data.AD$group, median, na.rm=T)[1], data.AD$Correlation)
+data.AD$Correlation    <- ifelse(is.na(data.AD$Correlation) & (data.AD$group=="0"), tapply(data.AD$Correlation, data.AD$group, median, na.rm=T)[1],
+                                    data.AD$Correlation)
 
-data.AD$Correlation    <- ifelse(is.na(data.AD$Correlation) & (data.AD$group=="1"), tapply(data.AD$Correlation, data.AD$group, median, na.rm=T)[2], data.AD$Correlation)
-
+data.AD$Correlation    <- ifelse(is.na(data.AD$Correlation) & (data.AD$group=="1"), tapply(data.AD$Correlation, data.AD$group, median, na.rm=T)[2], 
+                                    data.AD$Correlation)
 # Calculate SE from SD
 data.AD$seBaseline     <- ifelse(is.na(data.AD$seBaseline), data.AD$sdBaseline/sqrt(data.AD$NCFB), data.AD$seBaseline)
 data.AD$seFU           <- ifelse(is.na(data.AD$seFU), data.AD$sdFU/sqrt(data.AD$NCFB), data.AD$seFU)
@@ -82,7 +84,7 @@ summary(MA.random.changescores)
 #                           Method 3:  Recovering ANCOVA estimates approach
 #----------------------------------------------------------------------------------------------
 
-# calculate pooled standard deviations of baseline and follow-up values
+# Calculate pooled standard deviations of baseline and follow-up values
 sdpooledB <- with(data.AD_wide, sqrt((((NCFB_1 - 1)*(sdBaseline_1^2)) + (NCFB_0 - 1)*(sdBaseline_0^2))/((NCFB_1+NCFB_0)-2)))
 sdpooledF <- with(data.AD_wide, sqrt((((NCFB_1 - 1)*(sdFU_1^2)) + (NCFB_0 - 1)*(sdFU_0^2))/((NCFB_1+NCFB_0)-2)))
 
@@ -105,16 +107,15 @@ summary(MA.random.ANCOVA)
 #                              Method 5:  Modified Trowman approach
 #----------------------------------------------------------------------------------------------
 diff <- with(data.AD_wide, MeanBaseline_0-MeanBaseline_1)
-modified.random <-  rma(m1i=MeanFU_1, m2i=MeanFU_0, sd1i=sdFU_1, sd2i=sdFU_0, n1i=NCFB_1, n2i=NCFB_0,
-                       measure="MD", mods=~diff, method="REML", data=data.AD_wide, knha=TRUE)
+modified.random <-  rma(m1i=MeanFU_1, m2i=MeanFU_0, sd1i=sdFU_1, sd2i=sdFU_0, n1i=NCFB_1, n2i=NCFB_0, measure="MD", 
+                        mods=~diff, method="REML", data=data.AD_wide, knha=TRUE)
 summary(modified.random)
 
 # Modified Trowman with interaction
 
-modified.random.INT <- rma(m1i=MeanFU_1, m2i=MeanFU_0, sd1i=sdFU_1, sd2i=sdFU_0, n1i=NCFB_1, n2i=NCFB_0,
-                          measure="MD", mods=~diff + MeanBaseline_1, method="REML", data=data.AD_wide, knha=TRUE)
+modified.random.INT <- rma(m1i=MeanFU_1, m2i=MeanFU_0, sd1i=sdFU_1, sd2i=sdFU_0, n1i=NCFB_1, n2i=NCFB_0, measure="MD", 
+                           mods=~diff + MeanBaseline_1, method="REML", data=data.AD_wide, knha=TRUE)
 summary(modified.random.INT)
-
 
 yi <- c(MA.random.final$yi[1:8])
 vi <- MA.random.final$vi
@@ -174,16 +175,16 @@ data.IPD2$y2    <- data.IPD2$ytmp3*data.IPD2$sdPost + data.IPD2$meanPost
 # make new dataset, with only relevant variables
 data.pseudoIPD <- data.IPD2[,c("study", "group", "y1", "y2")]
 #View(data.pseudoIPD) # final pseudo IPD dataset 
-rm(data.IPD2,data.IPD)
+rm(data.IPD2, data.IPD)
 
 # Check the mean and sd of y1 and y2, and correlation y1, y2
-check <-cbind(aggregate(y1~group+study, data=data.pseudoIPD, mean), 
+check <- cbind(aggregate(y1~group+study, data=data.pseudoIPD, mean), 
               aggregate(y2~group+study, data=data.pseudoIPD, mean)[3],
               aggregate(y1~group+study, data=data.pseudoIPD, sd)[3],
               aggregate(y2~group+study, data=data.pseudoIPD, sd)[3],
               as.vector(cbind(by(data.pseudoIPD, data.pseudoIPD[,c("group","study")], function(x) {cor(x$y1,x$y2)}))))
 
-colnames(check)<- c(colnames(check)[1:2], "meany1", "meany2","sdy1", "sdy2","cory1y2")
+colnames(check) <- c(colnames(check)[1:2], "meany1", "meany2","sdy1", "sdy2","cory1y2")
 check
 rm(check)
 
@@ -203,22 +204,20 @@ ctrl <- lmeControl(opt="optim", msMaxIter=100)
 # Study stratified intercept and random treatment effect ANCOVA main effect
 
 # arm and study specific variances estimated  
-FRstudyarm    <- lme(fixed=y2 ~ y1center + group + as.factor(study) + y1center*as.factor(study), random= ~ -1 + groupcenter|study,
-                     weights =varIdent(form=~study|arm), control=ctrl,
-                     data=data.pseudoIPD, method='REML')
+FRstudyarm    <- lme(y2 ~ y1center + group + as.factor(study) + y1center*as.factor(study), random= ~ -1 + groupcenter|study, weights =varIdent(form=~study|arm), 
+                     control=ctrl, data=data.pseudoIPD, method='REML')
 
 # study specific variances estimated 
-FRstudy       <-  lme(fixed=y2 ~ y1center+ group + as.factor(study) + y1center*as.factor(study) , random= ~ -1 + groupcenter|study,
-                      weights =varIdent(form=~1|study), control=ctrl,
-                      data=data.pseudoIPD, method='REML')
+FRstudy       <-  lme(y2 ~ y1center+ group + as.factor(study) + y1center*as.factor(study) , random= ~ -1 + groupcenter|study, weights =varIdent(form=~1|study), 
+                      control=ctrl, data=data.pseudoIPD, method='REML')
 
 # gruop specific variance estimated 
-FRgroup      <-   lme(fixed=y2 ~ y1center + group+ as.factor(study) + y1center*as.factor(study) , random= ~ -1 + groupcenter|study,
-                      weights =varIdent(form=~1|group), control=ctrl,
-                      data=data.pseudoIPD, method='REML')
+FRgroup      <-   lme(y2 ~ y1center + group+ as.factor(study) + y1center*as.factor(study) , random= ~ -1 + groupcenter|study, weights =varIdent(form=~1|group),
+                      control=ctrl, data=data.pseudoIPD, method='REML')
 
 #one residual variance estimated
-FRone        <-   lme(fixed=y2 ~ y1center + group + as.factor(study) + y1center*as.factor(study) , random= ~-1 + groupcenter|study, control=ctrl, data=data.pseudoIPD, method='REML')
+FRone        <-   lme(y2 ~ y1center + group + as.factor(study) + y1center*as.factor(study) , random= ~-1 + groupcenter|study, control=ctrl, 
+                      data=data.pseudoIPD, method='REML')
 
 
 # Function to collect the results per model calculating Wald-type CIs
@@ -246,23 +245,20 @@ groupeffect(FRone)
 # Study stratified intercept and random treatment effect ANCOVA interaction effect
 
 # arm and study specific variances estimated
-FRstudyarmInt <- lme(fixed=y2 ~ y1center*as.factor(study) + y1center*group + group:meany1bystudy, random= ~ -1 + groupcenter|study,
-                     weights =varIdent(form=~study|arm), control=ctrl,
-                     data=data.pseudoIPD, method='REML')
+FRstudyarmInt <- lme(y2 ~ y1center*as.factor(study) + y1center*group + group:meany1bystudy, random= ~ -1 + groupcenter|study, weights =varIdent(form=~study|arm), 
+                     control=ctrl, data=data.pseudoIPD, method='REML')
 
 # study specific variances estimated  
-FRstudyInt   <-   lme(fixed=y2 ~ y1center*as.factor(study) + y1center*group + group:meany1bystudy, random= ~ -1 + groupcenter|study,
-                      weights =varIdent(form=~1|study), control=ctrl,
-                      data=data.pseudoIPD, method='REML')
+FRstudyInt    <-   lme(y2 ~ y1center*as.factor(study) + y1center*group + group:meany1bystudy, random= ~ -1 + groupcenter|study, weights =varIdent(form=~1|study), 
+                      control=ctrl, data=data.pseudoIPD, method='REML')
 
 # group specific variances estimate
-FRgroupInt   <-   lme(fixed=y2 ~ y1center*as.factor(study) + y1center*group + group:meany1bystudy, random= ~ -1 + groupcenter|study,
-                      weights =varIdent(form=~1|group), control=ctrl,
-                      data=data.pseudoIPD, method='REML')
+FRgroupInt    <-   lme(y2 ~ y1center*as.factor(study) + y1center*group + group:meany1bystudy, random= ~ -1 + groupcenter|study, weights =varIdent(form=~1|group), 
+                       control=ctrl, data=data.pseudoIPD, method='REML')
 
 # one residual variance estimated
-FRoneInt     <-   lme(fixed=y2 ~ y1center*as.factor(study) + y1center*group + group:meany1bystudy , random= ~ -1 + groupcenter|study,
-                      control=ctrl,data=data.pseudoIPD, method='REML')
+FRoneInt      <-   lme(y2 ~ y1center*as.factor(study) + y1center*group + group:meany1bystudy , random= ~ -1 + groupcenter|study, control=ctrl, 
+                       data=data.pseudoIPD, method='REML')
 
 
 # Function to collect the within-trial interactions results per model using Wald-type CIs
@@ -285,7 +281,6 @@ within_trial(FRstudyarmInt)
 within_trial(FRstudyInt)
 within_trial(FRgroupInt)
 within_trial(FRoneInt)
-
 
 # Function to collect the across-trial interactions results per model using Wald-type CIs
 across_trial <- function(results)
@@ -319,8 +314,8 @@ se_ancova   <- NULL
 
 for (i in unique(data.pseudoIPD$study ))
 {         fit <- lm(y2~ y1 + group, data.pseudoIPD[data.pseudoIPD$study==i,])
-coef_ancova <- rbind(coef_ancova,fit$coefficients) 
-se_ancova <- rbind(se_ancova,sqrt(diag(vcov(fit))))
+coef_ancova   <- rbind(coef_ancova,fit$coefficients) 
+se_ancova     <- rbind(se_ancova,sqrt(diag(vcov(fit))))
 }
 
 # Prepare data for two stage MA
@@ -328,7 +323,7 @@ two_stageMA <- data.frame(study=unique(data.pseudoIPD$study), coef_group=coef_an
                           secoef_group = se_ancova[,"group"])
 
 # Run aggregate meta-analysis 
-MA <- rma(yi=coef_group, sei=secoef_group, slab=study, method="REML", data=two_stageMA, knha=TRUE)
+MA <- rma(yi <- coef_group, sei=secoef_group, slab=study, method="REML", data=two_stageMA, knha=TRUE)
 summary(MA); forest(MA)
 
 #----------------------------------------------------------------------------------------------
@@ -339,8 +334,8 @@ se_ancova_int   <- NULL
 
 for (i in unique(data.pseudoIPD$study ))
 {         fit     <- lm(y2~ y1center + group + y1center*group, data.pseudoIPD[data.pseudoIPD$study==i,])
-coef_ancova_int <- rbind(coef_ancova_int,fit$coefficients) 
-se_ancova_int <- rbind(se_ancova_int,sqrt(diag(vcov(fit))))
+coef_ancova_int   <- rbind(coef_ancova_int,fit$coefficients) 
+se_ancova_int     <- rbind(se_ancova_int, sqrt(diag(vcov(fit))))
 }
 
 # Prepare data for two stage MA
@@ -348,5 +343,5 @@ two_stageMA_int <- data.frame(study=unique(data.pseudoIPD$study), coef_group=coe
                               secoef_group = se_ancova_int[,"y1center:group"])
 
 # Run aggregate meta-analysis 
-MA_int <- rma(yi=coef_group,sei=secoef_group, slab=study, method="REML", data=two_stageMA_int)
+MA_int <- rma(yi <- coef_group,sei=secoef_group, slab=study, method="REML", data=two_stageMA_int)
 summary(MA_int); forest(MA_int)
