@@ -15,8 +15,8 @@ library(lme4)
 library(metafor)
 library(nlme)
 
-# Load Trowman example dataset 
-data.AD <- read_excel("Trowman_withNAs.xlsx")
+# Load datasets
+data.AD <- read_excel("Trowman_withNAs.xlsx") # Load Trowman/calcium supplementation dataset
 # data.AD <- read_excel("apnea_withNAs.xlsx") # Load apnea dataset
 
 #--------------------------------------------------------------------------------------------------------------------------
@@ -26,7 +26,7 @@ data.AD <- read_excel("Trowman_withNAs.xlsx")
 # Calculate post baseline mean from CFB and baseline 
 data.AD$MeanFU  <- ifelse(is.na(data.AD$MeanFU), data.AD$MeanCFB + data.AD$MeanBaseline, data.AD$MeanFU)
 
-# calculate change score values from baseline and follow-up
+# Calculate change score values from baseline and follow-up
 data.AD$MeanCFB <-  ifelse(is.na(data.AD$MeanCFB), data.AD$MeanFU - data.AD$MeanBaseline, data.AD$MeanCFB)
 
 ## Calculate missing standard deviations from standard errors and vice versa
@@ -36,7 +36,7 @@ data.AD$sdBaseline     <- ifelse(is.na(data.AD$sdBaseline), data.AD$seBaseline*s
 data.AD$sdFU           <- ifelse(is.na(data.AD$sdFU), data.AD$seFU*sqrt(data.AD$NCFB), data.AD$sdFU)
 data.AD$sdCFB          <- ifelse(is.na(data.AD$sdCFB), data.AD$seCFB*sqrt(data.AD$NCFB), data.AD$sdCFB)
 
-# if not possible assume same SD at baseline and follow-up
+# If not possible assume same SD at baseline and follow-up
 data.AD$sdFU <- ifelse(is.na(data.AD$sdFU), data.AD$sdBaseline, data.AD$sdFU)
 
 # Calculate group correlations using Equation (B8) or impute from reported median correlations of the remaining studies
@@ -48,7 +48,7 @@ data.AD$Correlation    <- ifelse(is.na(data.AD$Correlation) & (data.AD$group=="0
 
 data.AD$Correlation    <- ifelse(is.na(data.AD$Correlation) & (data.AD$group=="1"), tapply(data.AD$Correlation, data.AD$group, median, na.rm=T)[2], 
                                     data.AD$Correlation)
-# Calculate SE from SD
+# Final calculations of SE from SD
 data.AD$seBaseline     <- ifelse(is.na(data.AD$seBaseline), data.AD$sdBaseline/sqrt(data.AD$NCFB), data.AD$seBaseline)
 data.AD$seFU           <- ifelse(is.na(data.AD$seFU), data.AD$sdFU/sqrt(data.AD$NCFB), data.AD$seFU)
 data.AD$sdCFB          <- ifelse(is.na(data.AD$sdCFB), sqrt(data.AD$sdBaseline^2+data.AD$sdFU^2-2*data.AD$Correlation*data.AD$sdBaseline*data.AD$sdFU), data.AD$sdCFB)
@@ -104,7 +104,7 @@ MA.random.ANCOVA <- rma(yi=ancova_est , sei=se_ancovas_est , slab=data.AD$study,
 summary(MA.random.ANCOVA)
 
 #----------------------------------------------------------------------------------------------
-#                              Method 5:  Modified Trowman approach
+#                            Method 5:  Modified Trowman approach
 #----------------------------------------------------------------------------------------------
 diff <- with(data.AD_wide, MeanBaseline_0-MeanBaseline_1)
 modified.random <-  rma(m1i=MeanFU_1, m2i=MeanFU_0, sd1i=sdFU_1, sd2i=sdFU_0, n1i=NCFB_1, n2i=NCFB_0, measure="MD", 
@@ -117,9 +117,11 @@ modified.random.INT <- rma(m1i=MeanFU_1, m2i=MeanFU_0, sd1i=sdFU_1, sd2i=sdFU_0,
                            mods=~diff + MeanBaseline_1, method="REML", data=data.AD_wide, knha=TRUE)
 summary(modified.random.INT)
 
+
+# Same results as the main effect of modified Trowman approach can be obtained by using Fay-Herriot estimate of the small area estimation library
 yi <- c(MA.random.final$yi[1:8])
 vi <- MA.random.final$vi
-library(sae) # same as modified trowman
+require(sae) 
 va <- eblupFH(formula = yi ~ diff, vardir = vi, method = "REML")
 
 #----------------------------------------------------------------------------------------------------------------------------
@@ -187,7 +189,6 @@ check <- cbind(aggregate(y1~group+study, data=data.pseudoIPD, mean),
 colnames(check) <- c(colnames(check)[1:2], "meany1", "meany2","sdy1", "sdy2","cory1y2")
 check
 rm(check)
-
 
 # Pre-step to calculate centered baseline values by study
 data.pseudoIPD$meany1bystudy <- ave(data.pseudoIPD$y1, data.pseudoIPD$study)
@@ -259,7 +260,6 @@ FRgroupInt    <-   lme(y2 ~ y1center*as.factor(study) + y1center*group + group:m
 # one residual variance estimated
 FRoneInt      <-   lme(y2 ~ y1center*as.factor(study) + y1center*group + group:meany1bystudy , random= ~ -1 + groupcenter|study, control=ctrl, 
                        data=data.pseudoIPD, method='REML')
-
 
 # Function to collect the within-trial interactions results per model using Wald-type CIs
 within_trial <- function(results)
