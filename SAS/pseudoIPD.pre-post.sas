@@ -244,13 +244,13 @@ run;
 proc sort data=temp;
 by study group; run;
 
-* standardize ytmp1 and ytmp2;
+* Standardize ytmp1 and ytmp2;
 proc standard data=temp mean=0 std=1 out=temp2;
   var ytmp1 ytmp2 ;
   by study group;
 run;
 
-* regress ytmp2 on ytmp1, save residuals (ytmp22) and the regression coefficient (which is equal to cor(y1tmp, y2tmp));
+* Regress ytmp2 on ytmp1, save residuals (ytmp22) and the regression coefficient (which is equal to cor(y1tmp, y2tmp));
 ods output ParameterEstimates = parms;
 proc reg data=temp2 plots=none;
       model ytmp2=ytmp1/noint;
@@ -258,13 +258,13 @@ proc reg data=temp2 plots=none;
 	  by study group;
 run;
    
-* check that correlation of ytmp1 and ytmp2 by group and study is equal to beta from regresion;   
+* Check that correlation of ytmp1 and ytmp2 by group and study is equal to beta from regresion;   
 proc corr data=temp2;
 var ytmp1 ytmp2;
 by study group;
 run;
 
-* generate the pseudo IPD;
+* Generate the pseudo IPD;
 data ipd;
 	merge temp3 parms(keep = study group estimate);* Add the correlation between ytmp1 and ytmp2(estimate) to the ipd dataset;
 	by study group;
@@ -275,7 +275,7 @@ data ipd;
 	drop ytmp1 ytmp2 ytmp22 ytmp3 estimate;
 run;
 
-* a check to see if mean pseudo baselines and mean pseudo outcomes are equal to reported mean baseline per group and mean post baseline outcomes;
+* A check to see if mean pseudo baselines and mean pseudo outcomes are equal to reported mean baseline per group and mean post baseline outcomes;
 proc means data=ipd;
 	class study group;
 	var y1 y2 Meanbaseline MeanFU sdbaseline sdFU Correlation;
@@ -292,7 +292,7 @@ data ipd; set ipd;
 	keep study group arm y1 y2;
 run;
 
-* data are centered to prevent convergence problems;
+* Data are centered to prevent convergence problems;
 proc means data=ipd nway noprint;
 	class study;
 	var y1;
