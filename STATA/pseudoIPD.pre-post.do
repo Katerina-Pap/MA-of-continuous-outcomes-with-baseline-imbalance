@@ -1,5 +1,5 @@
 *----------------------------------------------------------------------------------------------------------------------------
-*     STATA code supplementing " The impact of trial baseline imbalances should be considered in systematic reviews: 
+*     STATA code supplementing "The impact of trial baseline imbalances should be considered in systematic reviews: 
 *     a methodological case study revisited
 *     Author: Katerina Papadimitropoulou/Saskia le Cessie
 *     Date:   November 2020
@@ -14,7 +14,7 @@ import excel "Trowman_withNAs.xlsx", sheet("Trowman_withNAs") firstrow clear
 * Calculate post baseline mean from CFB and baseline 
 replace MeanFU = MeanCFB + MeanBaseline if MeanFU==.
 
-* calculate change score values from baseline and follow-up
+* Calculate change score values from baseline and follow-up
 replace MeanCFB = MeanFU - MeanBaseline if MeanCFB==.
 
 * Calculate missing standard deviations from standard errors and vice versa
@@ -35,7 +35,7 @@ egen mediancor=median(Correlation), by(group)
 replace Correlation = mediancor if Correlation ==.
 drop mediancor
 
-* Calculate SE from SD
+* Final calculations of SE from SD
 replace seBaseline     =  sdBaseline/sqrt(NCFB) if seBaseline ==.
 replace seFU           =  sdFU/sqrt(NCFB) if seFU ==.
 replace sdCFB          =  sqrt(sdBaseline^2+sdFU^2-2*Correlation*sdBaseline*sdFU) if sdCFB ==.
@@ -95,7 +95,10 @@ reshape long  MeanBaseline sdBaseline seBaseline MeanFU sdFU seFU Correlation Me
 * Fitting a simple linear regression weighted by sample size accounting for treatments clustered in trials (ID)
 regress MeanFU MeanBaseline group [fweight=NCFB], vce(cluster ID)
 
-** Trowman method with interaction
+* Alternative fitting of the Trowman methods - preferred over fweight
+regress MeanFU MeanBaseline group [pweight=NCFB], vce(cluster ID)
+
+* Trowman method with interaction
 regress MeanFU MeanBaseline group c.MeanBaseline##group  [fweight=NCFB], vce(cluster ID)
 
 *----------------------------------------------------------------------------------------------
@@ -109,12 +112,12 @@ generate diff = MeanBaseline0-MeanBaseline1
 meta esize NCFB1 MeanFU1 sdFU1 NCFB0 MeanFU0 sdFU0, esize(mdiff, unequal)
 meta regress diff , se(khartung)
 
-* with interaction 
+* Modified Trowman with interaction 
 meta regress diff MeanBaseline1 , se(khartung)
 
 *----------------------------------------------------------------------------------------------------------------------------
-*                                         Method 6:  Pseudo IPD approach
-*                                          First generate the pseudo IPD
+*                               Method 6:  Pseudo IPD approach
+*                                First generate the pseudo IPD
 *----------------------------------------------------------------------------------------------------------------------------
 
 * Use data in long format:
@@ -160,10 +163,9 @@ drop ytmp1 ytmp2 mean_ytmp1 sd_ytmp1 mean_ytmp2 sd_ytmp2 corrtmp resid ytmp3
 
 * Pre-step to calculate centered baseline values by study
 egen meany1bystudy =  mean(y1), by(ID)
-gen y1center      = y1 - meany1bystudy
-gen groupcenter   = group - 0.5
-gen arm           = 1000*ID + group
-
+gen y1center       =  y1 - meany1bystudy
+gen groupcenter    =  group - 0.5
+gen arm            =  1000*ID + group
 
 *----------------------------------------------------------------------------------------------
 *                       One-stage pseudo IPD models 
@@ -171,10 +173,11 @@ gen arm           = 1000*ID + group
  
  gen nobs= _n
  gen group0 = 1-group
-
+ 
 *-----------------------------------------------------------------------------
 * Study stratified intercept and random treatment effect ANCOVA - Main effect
 *----------------------------------------------------------------------------- 
+
 *arm/study specific residual variances estimated 
 mixed y2 group y1center i.ID  i.ID##c.y1center|| ID: groupcenter, covariance(unstructured) resid(ind, by(arm)) noconstant reml dfmethod(satterthwaite)
 
@@ -203,11 +206,15 @@ mixed y2 group y1center i.ID  i.ID##c.y1center group##c.y1center group##c.meany1
 *one residual variance estimated with treatment-baseline interaction
 mixed y2 group y1center i.ID  i.ID##c.y1center group##c.y1center group##c.meany1bystudy|| ID: groupcenter, var reml noconstant dfmethod(satterthwaite)
 
-
 *----------------------------------------------------------------------------------------------
 *                       Two-stage pseudo IPD models 
 *----------------------------------------------------------------------------------------------
-* preserve the pseudo IPD 
+
+*-----------------------------------------------------------------------------
+*  Pooling study-level estimates of treatment effect:  Main effect
+*----------------------------------------------------------------------------- 
+
+* Preserve the pseudo IPD 
 preserve 
 * ANCOVA per study on pseudo IPD for subsequent two-stage MA
 * Store coefficients 
@@ -217,7 +224,9 @@ statsby _b _se, by(ID) clear: regress y2 y1center group
 meta set  _b_group _se_group
 meta summarize,se(khartung)
 
-*----------------------------------------------------------------------------------------------
+*-----------------------------------------------------------------------------
+*  Pooling study-level estimates of interaction effect:  Interaction effect
+*----------------------------------------------------------------------------- 
 * Ancovas per study with interaction of baseline and treatment effect on pseudo IPD for subsequent two-stage MA
 
 * restore the pseudo IPD
