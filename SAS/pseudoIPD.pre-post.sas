@@ -333,7 +333,7 @@ random groupcenter/subject=study type=vc s;
 repeated/group=arm;
 run;
 
-title "study specific variances, stratified study model";
+title "Study specific variances, stratified study model";
 ** study specific variances estimated ;
 proc mixed data=ipd method = reml;
 class study group;
@@ -342,7 +342,7 @@ random groupcenter/ subject=study type=un s;
 repeated/group=study;
 run;
 
-title "study specific variances, stratified study model with interaction of baseline with treament";
+title "Study specific variances, stratified study model with interaction of baseline with treament";
 ** study specific variances estimated;* interaction of baseline with treament added; 
 proc mixed data=ipd method = reml;
 class study groupcenter;
@@ -362,7 +362,7 @@ random groupcenter/subject=study type=un s;
 repeated/group=groupc;
 run;
 
-title "group specific variances, stratified study model with interaction of baseline with treament";
+title "Group specific variances, stratified study model with interaction of baseline with treament";
 * group specific variances estimated; * interaction of baseline with treament added; 
 proc mixed data=ipd method = reml;
 class study groupc;
@@ -391,6 +391,7 @@ run;
 *-----------------------------------------------------;
 title "Two stage ANCOVA - main effect";
 proc sort data=ipd; by study;
+
 * separate ancovas per study, regress y2 on y1 and group, save regression coefficients;
 ods output ParameterEstimates = effect_est;
 proc glm data=ipd plots=none;
