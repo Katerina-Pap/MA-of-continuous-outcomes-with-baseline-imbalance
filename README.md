@@ -11,4 +11,4 @@ In addition, we propose the preferred approach of generating pseudo IPD from the
 ## Codes 
 * [R](https://github.com/Katerina-Pap/MA-of-continuous-outcomes-with-baseline-imbalance/blob/main/R/pseudoIPD.pre-post.R)
 * [SAS](https://github.com/Katerina-Pap/MA-of-continuous-outcomes-with-baseline-imbalance/blob/main/SAS/pseudoIPD.pre-post.sas)
-* [STATA](https://github.com/Katerina-Pap/MA-of-continuous-outcomes-with-baseline-imbalance/blob/main/STATA/pseudoIPD.pre-post.do)
+* [Stata](https://github.com/Katerina-Pap/MA-of-continuous-outcomes-with-baseline-imbalance/blob/main/STATA/pseudoIPD.pre-post.do)
