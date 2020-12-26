@@ -37,7 +37,7 @@ data.AD$sdFU           <- ifelse(is.na(data.AD$sdFU), data.AD$seFU*sqrt(data.AD$
 data.AD$sdCFB          <- ifelse(is.na(data.AD$sdCFB), data.AD$seCFB*sqrt(data.AD$NCFB), data.AD$sdCFB)
 
 # If not possible assume same SD at baseline and follow-up
-data.AD$sdFU <- ifelse(is.na(data.AD$sdFU), data.AD$sdBaseline, data.AD$sdFU)
+data.AD$sdFU           <- ifelse(is.na(data.AD$sdFU), data.AD$sdBaseline, data.AD$sdFU)
 
 # Calculate group correlations using Equation (B8) or impute from reported median correlations of the remaining studies
 data.AD$Correlation    <- ifelse(is.na(data.AD$Correlation), (data.AD$sdBaseline^2+data.AD$sdFU^2-data.AD$sdCFB^2)/(2*data.AD$sdBaseline*data.AD$sdFU), 
@@ -106,7 +106,7 @@ summary(MA.random.ANCOVA)
 #----------------------------------------------------------------------------------------------
 #                            Method 5:  Modified Trowman approach
 #----------------------------------------------------------------------------------------------
-diff <- with(data.AD_wide, MeanBaseline_0-MeanBaseline_1)
+diff            <- with(data.AD_wide, MeanBaseline_0-MeanBaseline_1)
 modified.random <-  rma(m1i=MeanFU_1, m2i=MeanFU_0, sd1i=sdFU_1, sd2i=sdFU_0, n1i=NCFB_1, n2i=NCFB_0, measure="MD", 
                         mods=~diff, method="REML", data=data.AD_wide, knha=TRUE)
 summary(modified.random)
@@ -161,9 +161,9 @@ datatmp$ytmp2 <- (datatmp$ytmp2-mean(datatmp$ytmp2))/sd(datatmp$ytmp2)
 cor.ytmp      <- cor(datatmp$ytmp1, datatmp$ytmp2)
 # residuals of regression of ytmp2 on ytmp1
 resid         <- residuals(lm(ytmp2 ~ ytmp1 - 1 , data = datatmp))
-Resid <- datatmp$ytmp2 - cor.ytmp*datatmp$ytmp1
+Resid         <- datatmp$ytmp2 - cor.ytmp*datatmp$ytmp1
 # coefficient beta of regression of ytmp2 on ytmp1
-#coef          <- coef(lm(ytmp2 ~ ytmp1 - 1 , data = datatmp))
+#coef         <- coef(lm(ytmp2 ~ ytmp1 - 1 , data = datatmp))
 data.IPD2     <- rbind( data.IPD2, data.frame(datatmp,cor.ytmp,resid,Resid))
 }  
 } 
@@ -213,11 +213,11 @@ FRstudy       <-  lme(y2 ~ y1center+ group + as.factor(study) + y1center*as.fact
                       control=ctrl, data=data.pseudoIPD, method='REML')
 
 # gruop specific variance estimated 
-FRgroup      <-   lme(y2 ~ y1center + group+ as.factor(study) + y1center*as.factor(study) , random= ~ -1 + groupcenter|study, weights =varIdent(form=~1|group),
+FRgroup       <-  lme(y2 ~ y1center + group+ as.factor(study) + y1center*as.factor(study) , random= ~ -1 + groupcenter|study, weights =varIdent(form=~1|group),
                       control=ctrl, data=data.pseudoIPD, method='REML')
 
-#one residual variance estimated
-FRone        <-   lme(y2 ~ y1center + group + as.factor(study) + y1center*as.factor(study) , random= ~-1 + groupcenter|study, control=ctrl, 
+# one residual variance estimated
+FRone         <-  lme(y2 ~ y1center + group + as.factor(study) + y1center*as.factor(study) , random= ~-1 + groupcenter|study, control=ctrl, 
                       data=data.pseudoIPD, method='REML')
 
 
