@@ -1,6 +1,5 @@
 #----------------------------------------------------------------------------------------------------------------------------
-#     R code supplementing " The impact of trial baseline imbalances should be considered in systematic reviews: 
-#     a methodological case study revisited
+#     R code supplementing "META-ANALYSIS OF RANDOMISED TRIALS WITH CONTINUOUS OUTCOMES: METHODS THAT ADJUST FORBASELINE SHOULD BE USED"
 #     Author: Katerina Papadimitropoulou
 #     Date:   November 2020
 #----------------------------------------------------------------------------------------------------------------------------
@@ -19,7 +18,7 @@ library(nlme)
 data.AD <- read_excel("Trowman_withNAs.xlsx") # Load Trowman/calcium supplementation dataset
 # data.AD <- read_excel("apnea_withNAs.xlsx") # Load apnea dataset
 
-#--------------------------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------------------
 #                       Start algebraic calculations and imputations of values  
 #----------------------------------------------------------------------------------------------------------------------------
 
@@ -29,8 +28,7 @@ data.AD$MeanFU  <- ifelse(is.na(data.AD$MeanFU), data.AD$MeanCFB + data.AD$MeanB
 # Calculate change score values from baseline and follow-up
 data.AD$MeanCFB <-  ifelse(is.na(data.AD$MeanCFB), data.AD$MeanFU - data.AD$MeanBaseline, data.AD$MeanCFB)
 
-## Calculate missing standard deviations from standard errors and vice versa
-
+## Calculate missing standard deviations from standard errors and vice versa 
 # Calcucate SD from SE 
 data.AD$sdBaseline     <- ifelse(is.na(data.AD$sdBaseline), data.AD$seBaseline*sqrt(data.AD$NCFB), data.AD$sdBaseline)
 data.AD$sdFU           <- ifelse(is.na(data.AD$sdFU), data.AD$seFU*sqrt(data.AD$NCFB), data.AD$sdFU)
@@ -54,6 +52,7 @@ data.AD$seFU           <- ifelse(is.na(data.AD$seFU), data.AD$sdFU/sqrt(data.AD$
 data.AD$sdCFB          <- ifelse(is.na(data.AD$sdCFB), sqrt(data.AD$sdBaseline^2+data.AD$sdFU^2-2*data.AD$Correlation*data.AD$sdBaseline*data.AD$sdFU), data.AD$sdCFB)
 data.AD$seCFB          <- ifelse(is.na(data.AD$seCFB), data.AD$sdCFB/sqrt(data.AD$NCFB), data.AD$seCFB)
 data.AD
+
 #----------------------------------------------------------------------------------------------------------------------------
 #             Perform (standard) AD approaches, Follow-up analysis, Change scores analysis 
 #                                  and recovering ANCOVA methods
@@ -130,7 +129,6 @@ va <- eblupFH(formula = yi ~ diff, vardir = vi, method = "REML")
 #----------------------------------------------------------------------------------------------------------------------------
 
 # Use data in long format: data.AD
-
 # Generate the pseudo baselines and outcomes
 data.IPD <- data.frame(study         = rep(data.AD$ID, data.AD$NCFB),
                        group         = rep(data.AD$group, data.AD$NCFB),
