@@ -1,7 +1,6 @@
 #----------------------------------------------------------------------------------------------------------------------------
 #     R code supplementing "META-ANALYSIS OF RANDOMISED TRIALS WITH CONTINUOUS OUTCOMES: METHODS THAT ADJUST FORBASELINE SHOULD BE USED"
 #     Author: Katerina Papadimitropoulou
-#     Date:   November 2020
 #----------------------------------------------------------------------------------------------------------------------------
 
 #----------------------------------------------------------------------------------------------------------------------------
@@ -19,7 +18,7 @@ data.AD <- read_excel("Trowman_withNAs.xlsx") # Load Trowman/calcium supplementa
 # data.AD <- read_excel("apnea_withNAs.xlsx") # Load apnea dataset
 
 #----------------------------------------------------------------------------------------------------------------------------
-#                       Start algebraic calculations and imputations of values  
+#                       Data wrangling: algebraic calculations and imputations of missing values  
 #----------------------------------------------------------------------------------------------------------------------------
 
 # Calculate post baseline mean from CFB and baseline 
@@ -203,21 +202,20 @@ ctrl <- lmeControl(opt="optim", msMaxIter=100)
 # Study stratified intercept and random treatment effect ANCOVA main effect
 
 # arm and study specific variances estimated  
-FRstudyarm    <- lme(y2 ~ y1center + group + as.factor(study) + y1center*as.factor(study), random= ~ -1 + groupcenter|study, weights =varIdent(form=~study|arm), 
+FRstudyarm <- lme(y2 ~ y1center + group + as.factor(study) + y1center*as.factor(study), random= ~ -1 + groupcenter|study, weights =varIdent(form=~study|arm), 
                      control=ctrl, data=data.pseudoIPD, method='REML')
 
 # study specific variances estimated 
-FRstudy       <-  lme(y2 ~ y1center+ group + as.factor(study) + y1center*as.factor(study) , random= ~ -1 + groupcenter|study, weights =varIdent(form=~1|study), 
+FRstudy    <-  lme(y2 ~ y1center+ group + as.factor(study) + y1center*as.factor(study) , random= ~ -1 + groupcenter|study, weights =varIdent(form=~1|study), 
                       control=ctrl, data=data.pseudoIPD, method='REML')
 
-# gruop specific variance estimated 
-FRgroup       <-  lme(y2 ~ y1center + group+ as.factor(study) + y1center*as.factor(study) , random= ~ -1 + groupcenter|study, weights =varIdent(form=~1|group),
+# group specific variance estimated 
+FRgroup    <-  lme(y2 ~ y1center + group+ as.factor(study) + y1center*as.factor(study) , random= ~ -1 + groupcenter|study, weights =varIdent(form=~1|group),
                       control=ctrl, data=data.pseudoIPD, method='REML')
 
 # one residual variance estimated
-FRone         <-  lme(y2 ~ y1center + group + as.factor(study) + y1center*as.factor(study) , random= ~-1 + groupcenter|study, control=ctrl, 
+FRone      <-  lme(y2 ~ y1center + group + as.factor(study) + y1center*as.factor(study) , random= ~-1 + groupcenter|study, control=ctrl, 
                       data=data.pseudoIPD, method='REML')
-
 
 # Function to collect the results per model calculating Wald-type CIs
 groupeffect <- function(results)
