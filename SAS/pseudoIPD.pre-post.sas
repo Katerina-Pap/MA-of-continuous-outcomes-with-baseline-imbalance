@@ -270,8 +270,8 @@ data ipd;
 	by study group;
 	* generate ytmp3 with sd(ytmp3) = 1, cor(ytmp3, ytmp1) = observed correlation; 
 	ytmp3 = correlation*ytmp1+ sqrt(1-Correlation*Correlation)*ytmp22/sqrt(1-estimate*estimate); 
-	y1 = ytmp1*sdBaseline+MeanBaseline ; * y1 now has mean and sd of original data;
-    y2 = ytmp3*sdFU + MeanFU; * y2 has mean and sd of original data ;
+	y1    = ytmp1*sdBaseline+MeanBaseline ; * y1 now has mean and sd of original data;
+        y2    = ytmp3*sdFU + MeanFU; * y2 has mean and sd of original data ;
 	drop ytmp1 ytmp2 ytmp22 ytmp3 estimate;
 run;
 
@@ -305,9 +305,9 @@ data ipd;
 run;
 
 data ipd; set ipd;
-y1center = y1 - mean_y1;
+y1center  = y1 - mean_y1;
 meanstudy = mean_y1; *needed for interaction models to separate within- and across-studies variability;
-groupc=group;
+groupc    = group;
 groupcenter = group-0.5;
 run;
 
@@ -383,7 +383,7 @@ title "One residual variance, stratified study model with interaction of baselin
 proc mixed data=ipd method = reml;
 class study groupc;
 model y2= y1center study group study*y1center group*y1center group*meanstudy/s cl ddfm=satterthwaite;
-random groupcenter groupcenter*y1center/subject=study type=vc s;
+random groupcenter/subject=study type=vc s;
 run;
 
 *-----------------------------------------------------
