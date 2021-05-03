@@ -240,6 +240,6 @@ statsby _b _se, by(ID) clear: regress y2 c.group##c.y1center
 meta set  _b_group _se_group
 meta summarize,se(khartung)
 
-*interaction terms (have funny names)
+* Interaction terms
 meta set  _stat_3 _stat_7
 meta summarize,se(khartung)
