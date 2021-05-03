@@ -278,7 +278,7 @@ run;
 * A check to see if mean pseudo baselines and mean pseudo outcomes are equal to reported mean baseline per group and mean post baseline outcomes;
 proc means data=ipd;
 	class study group;
-	var y1 y2 Meanbaseline MeanFU sdbaseline sdFU Correlation;
+	var y1 y2 MeanBaseline MeanFU sdBaseline sdFU Correlation;
 run;
 
 proc corr noprint;
