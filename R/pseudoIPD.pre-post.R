@@ -194,7 +194,7 @@ data.pseudoIPD$groupcenter   <- data.pseudoIPD$group - 0.5
 data.pseudoIPD$arm           <- 1000*data.pseudoIPD$study + data.pseudoIPD$group
 
 #----------------------------------------------------------------------------------------------
-#                       One-stage pseusdo IPD models 
+#                       One-stage pseudo IPD models 
 #----------------------------------------------------------------------------------------------
 ctrl <- lmeControl(opt="optim", msMaxIter=100)
 
