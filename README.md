@@ -7,11 +7,15 @@ We provide code to fit standard aggregate data meta-analytic approaches: follow-
 
 In addition, we propose the preferred approach of generating pseudo IPD from the appropriate summary data (*sufficient statistics*) and applying ANCOVA in an one-stage or two-stage model.
 
-## Practical Guidance on EBMH Statistics in Practice: 
-
-We compare the routinely used aggregate data approaches with the novel pseudo IPD approach in a published meta-analysis of depression scores in treatment-resistant depression.
-
 ## Codes 
 * [R](https://github.com/Katerina-Pap/MA-of-continuous-outcomes-with-baseline-imbalance/blob/main/R/pseudoIPD.pre-post.R)
 * [SAS](https://github.com/Katerina-Pap/MA-of-continuous-outcomes-with-baseline-imbalance/blob/main/SAS/pseudoIPD.pre-post.sas)
 * [Stata](https://github.com/Katerina-Pap/MA-of-continuous-outcomes-with-baseline-imbalance/blob/main/STATA/pseudoIPD.pre-post.do)
+
+
+## Practical Guidance on EBMH Statistics in Practice: 
+
+We compare the routinely used aggregate data approaches with the novel pseudo IPD approach in a published meta-analysis of depression scores in treatment-resistant depression.
+
+### R code only 
+* [R](https://github.com/Katerina-Pap/MA-of-continuous-outcomes-with-baseline-imbalance/blob/main/R/MDpretest-posttest-EBMH.R)
