@@ -1,0 +1,381 @@
+rm(list=ls())
+
+library(readxl)
+library(reshape2)
+library(nlme)
+library(meta)
+
+data.AD <- read_excel("C:/Users/papadika/OneDrive - Danone/Desktop/Thesis prep/For Intro/Material for SMD/Final example/MDD.xlsx",
+                      col_types = c("numeric", "text", "numeric",
+                                    "numeric", "numeric", "numeric",
+                                    "numeric", "numeric", "numeric",
+                                    "numeric", "numeric", "numeric",
+                                    "numeric", "numeric"))
+
+
+#----------------------------------------------------------------------------------------------------------------------------
+#                       Data wrangling: algebraic calculations and imputations of missing values  
+#----------------------------------------------------------------------------------------------------------------------------
+
+# Calculate post baseline mean from CFB and baseline 
+data.AD$MeanFU  <- ifelse(is.na(data.AD$MeanFU), data.AD$MeanCFB + data.AD$MeanBaseline, data.AD$MeanFU)
+
+# Calculate change score values from baseline and follow-up
+data.AD$MeanCFB <-  ifelse(is.na(data.AD$MeanCFB), data.AD$MeanFU - data.AD$MeanBaseline, data.AD$MeanCFB)
+
+## Calculate missing standard deviations from standard errors and vice versa 
+# Calcucate SD from SE 
+data.AD$sdBaseline     <- ifelse(is.na(data.AD$sdBaseline), data.AD$seBaseline*sqrt(data.AD$NCFB), data.AD$sdBaseline)
+data.AD$sdFU           <- ifelse(is.na(data.AD$sdFU), data.AD$seFU*sqrt(data.AD$NCFB), data.AD$sdFU)
+data.AD$sdCFB          <- ifelse(is.na(data.AD$sdCFB), data.AD$seCFB*sqrt(data.AD$NCFB), data.AD$sdCFB)
+
+# If not possible assume same SD at baseline and follow-up
+data.AD$sdFU           <- ifelse(is.na(data.AD$sdFU), data.AD$sdBaseline, data.AD$sdFU)
+
+# Calculate group correlations using Equation (B8) or impute from reported median correlations of the remaining studies
+data.AD$Correlation  <- ifelse(is.na(data.AD$Correlation), (data.AD$sdBaseline^2+data.AD$sdFU^2-data.AD$sdCFB^2)/(2*data.AD$sdBaseline*data.AD$sdFU),
+                               data.AD$Correlation)
+
+# check if correlation coefficients exceed [-1,1] boundary and substitute with 0.5
+data.AD$Correlation  <- ifelse((is.na(data.AD$Correlation) |(data.AD$Correlation<=-1.0) | (data.AD$Correlation>1)) & (data.AD$group=="0"), 0.5,
+                               data.AD$Correlation)
+
+
+data.AD$Correlation <- ifelse((is.na(data.AD$Correlation) |(data.AD$Correlation<=-1.0) | (data.AD$Correlation>1)) & (data.AD$group=="1"), 0.5,
+                              data.AD$Correlation)
+
+
+# Final calculations of SE from SD
+data.AD$seBaseline     <- ifelse(is.na(data.AD$seBaseline), data.AD$sdBaseline/sqrt(data.AD$NCFB), data.AD$seBaseline)
+data.AD$seFU           <- ifelse(is.na(data.AD$seFU), data.AD$sdFU/sqrt(data.AD$NCFB), data.AD$seFU)
+data.AD$sdCFB          <- ifelse(is.na(data.AD$sdCFB), sqrt(data.AD$sdBaseline^2+data.AD$sdFU^2-2*data.AD$Correlation*data.AD$sdBaseline*data.AD$sdFU), data.AD$sdCFB)
+data.AD$seCFB          <- ifelse(is.na(data.AD$seCFB), data.AD$sdCFB/sqrt(data.AD$NCFB), data.AD$seCFB)
+data.AD
+
+#----------------------------------------------------------------------------------------------------------------------------
+#             Perform (standard) AD approaches, Follow-up analysis, Change scores analysis 
+#                                  and recovering ANCOVA methods
+#----------------------------------------------------------------------------------------------------------------------------
+
+# For the first three methods the data need to be in wide format 
+drop         <- which(colnames(data.AD) %in% "Study")
+data.AD      <- data.AD[,-drop]
+data.AD_wide <- dcast(melt(data.AD, id.vars=c("ID", "group")), ID~variable+group)
+
+data.AD_wide$Study <- c("Avery 2006", "Boutros 2002", "Garcia-Toro 2001", "Garcia-Toro 2006", "Holtzheimer 2004", "Kauffmann 2004", "Padberg 1999", "Zheng 2010")
+
+#----------------------------------------------------------------------------------------------
+#                             Method 0:  Baseline scores
+#----------------------------------------------------------------------------------------------
+
+
+MA.random.baseline <- metacont( mean.e = MeanBaseline_1, mean.c=MeanBaseline_0, sd.e=sdBaseline_1, sd.c=sdBaseline_0, n.e=NCFB_1, n.c=NCFB_0,
+                                data=data.AD_wide,  studlab = paste(Study),
+                                comb.fixed = FALSE,
+                                comb.random = TRUE,
+                                method.tau = "REML",
+                                adhoc.hakn = "ci",
+                                prediction = TRUE,
+                                sm = "MD")
+
+summary(MA.random.baseline); forest.meta(MA.random.baseline)
+
+
+#----------------------------------------------------------------------------------------------
+#                             Method 1:  Follow-up scores
+#----------------------------------------------------------------------------------------------
+
+
+MA.random.final <- metacont( mean.e =MeanFU_1, mean.c=MeanFU_0, sd.e=sdFU_1, sd.c=sdFU_0, n.e=NCFB_1, n.c=NCFB_0,
+                             data=data.AD_wide,  studlab = paste(Study),
+                             comb.fixed = FALSE,
+                             comb.random = TRUE,
+                             method.ci = "t",
+                             method.tau = "REML",
+                             hakn = TRUE,
+                             adhoc.hakn = "ci",
+                             prediction = TRUE,
+                             sm = "MD")
+
+summary(MA.random.final); forest.meta(MA.random.final)
+
+#----------------------------------------------------------------------------------------------
+#                             Method 2:  Change scores
+#----------------------------------------------------------------------------------------------
+
+MA.random.change <- metacont( mean.e =MeanCFB_1, mean.c=MeanCFB_0, sd.e=sdCFB_1, sd.c=sdCFB_0, n.e=NCFB_1, n.c=NCFB_0,
+                              data=data.AD_wide,  studlab = paste(Study),
+                              comb.fixed = FALSE,
+                              comb.random = TRUE,
+                              method.ci = "t",
+                              method.tau = "REML",
+                              hakn = TRUE,
+                              adhoc.hakn = "ci",
+                              prediction = TRUE,
+                              sm = "MD")
+
+summary(MA.random.change); forest.meta(MA.random.change)
+
+#----------------------------------------------------------------------------------------------
+#                            Method 3:  Recovering ANCOVA estimates approach
+#----------------------------------------------------------------------------------------------
+
+# Calculate pooled standard deviations of baseline and follow-up values
+sdpooledB <- with(data.AD_wide, sqrt((((NCFB_1 - 1)*(sdBaseline_1^2)) + (NCFB_0 - 1)*(sdBaseline_0^2))/((NCFB_1+NCFB_0)-2)))
+sdpooledF <- with(data.AD_wide, sqrt((((NCFB_1 - 1)*(sdFU_1^2)) + (NCFB_0 - 1)*(sdFU_0^2))/((NCFB_1+NCFB_0)-2)))
+
+# Calculate ancova estimate using formula from Senn et al. 2007
+# using the pooled correlation 
+
+ripooled       <- with(data.AD_wide, ((NCFB_1*Correlation_1*sdBaseline_1*sdFU_1 +  NCFB_0*Correlation_0 *sdBaseline_0*sdFU_0) ) 
+                       /((NCFB_1+NCFB_0)*sdpooledB*sdpooledF))
+
+ancova_est     <- with(data.AD_wide, (MeanFU_1-MeanFU_0)-ripooled*(sdpooledF/sdpooledB)*(MeanBaseline_1-MeanBaseline_0))
+
+var_ancova_est <- with(data.AD_wide, sdpooledF^2*(1/NCFB_1)+sdpooledF^2*(1/NCFB_0))*(1-ripooled^2) # for different sample sizes from McKenzie and from Senn
+
+se_ancovas_est <- with(data.AD_wide,sqrt(var_ancova_est))
+
+
+MA.ANCOVA <- metagen(TE= ancova_est, seTE= se_ancovas_est, comb.fixed = FALSE,
+                     comb.random = TRUE,
+                     method.ci = "t",
+                     method.tau = "REML",
+                     hakn = TRUE,
+                     adhoc.hakn = "ci",
+                     prediction = TRUE,
+                     sm = "MD")
+
+MA.ANCOVA$seTE.random
+
+#----------------------------------------------------------------------------------------------------------------------------
+#                                         Method 6:  Pseudo IPD approach
+#                             First generate the pseudo IPD and then fit mixed effects models
+#----------------------------------------------------------------------------------------------------------------------------
+
+# Use data in long format: data.AD
+# Generate the pseudo baselines and outcomes
+data.IPD <- data.frame(study         = rep(data.AD$ID, data.AD$NCFB),
+                       group         = rep(data.AD$group, data.AD$NCFB),
+                       meanBaseline  = rep(data.AD$MeanBaseline, data.AD$NCFB),
+                       sdBaseline    = rep(data.AD$sdBaseline, data.AD$NCFB),
+                       meanPost      = rep(data.AD$MeanFU, data.AD$NCFB),
+                       sdPost        = rep(data.AD$sdFU, data.AD$NCFB),
+                       correlation   = rep(data.AD$Correlation,data.AD$NCFB))
+
+set.seed(123456)
+data.IPD$ytmp1 <- rnorm(nrow(data.IPD),0,1)
+set.seed(7891011)
+data.IPD$ytmp2 <- rnorm(nrow(data.IPD),0,1)
+
+# Standardize ytmp1 and ytmp2, calculate correlation between ytmp1 and ytmp2, 
+# and the residuals of regressing ytmp2 on ytmp1
+# per study and group
+
+data.IPD2 <- NULL
+for(study in unique(data.IPD$study))
+{   for (group in unique(data.IPD$group))
+{ datatmp     <- data.IPD[data.IPD$study==study & data.IPD$group==group,]
+# standardized y1tmp
+datatmp$ytmp1 <- (datatmp$ytmp1-mean(datatmp$ytmp1))/sd(datatmp$ytmp1)
+# standardized y2tmp
+datatmp$ytmp2 <- (datatmp$ytmp2-mean(datatmp$ytmp2))/sd(datatmp$ytmp2)
+# correlation between y1tmp and y2tmp
+cor.ytmp      <- cor(datatmp$ytmp1, datatmp$ytmp2)
+# residuals of regression of ytmp2 on ytmp1
+resid         <- residuals(lm(ytmp2 ~ ytmp1 - 1 , data = datatmp))
+Resid         <- datatmp$ytmp2 - cor.ytmp*datatmp$ytmp1
+# coefficient beta of regression of ytmp2 on ytmp1
+#coef         <- coef(lm(ytmp2 ~ ytmp1 - 1 , data = datatmp))
+data.IPD2     <- rbind( data.IPD2, data.frame(datatmp,cor.ytmp,resid,Resid))
+}  
+} 
+
+# temporary variable needed to generate the pseudo baseline and pseudo follow-up outcomes
+data.IPD2$ytmp3 <- data.IPD2$ytmp1*data.IPD2$correlation + sqrt(1-data.IPD2$correlation^2)*data.IPD2$resid/sqrt(1-data.IPD2$cor.ytmp^2)
+# generate pseudo baseline and pseudo follow-up outcomes
+data.IPD2$y1    <- data.IPD2$ytmp1*data.IPD2$sdBaseline + data.IPD2$meanBaseline
+data.IPD2$y2    <- data.IPD2$ytmp3*data.IPD2$sdPost + data.IPD2$meanPost
+
+# make new dataset, with only relevant variables
+data.pseudoIPD <- data.IPD2[,c("study", "group", "y1", "y2")]
+#View(data.pseudoIPD) # final pseudo IPD dataset 
+rm(data.IPD2, data.IPD)
+
+# Check the mean and sd of y1 and y2, and correlation y1, y2
+check <- cbind(aggregate(y1~group+study, data=data.pseudoIPD, mean), 
+               aggregate(y2~group+study, data=data.pseudoIPD, mean)[3],
+               aggregate(y1~group+study, data=data.pseudoIPD, sd)[3],
+               aggregate(y2~group+study, data=data.pseudoIPD, sd)[3],
+               as.vector(cbind(by(data.pseudoIPD, data.pseudoIPD[,c("group","study")], function(x) {cor(x$y1,x$y2)}))))
+
+colnames(check) <- c(colnames(check)[1:2], "meany1", "meany2","sdy1", "sdy2","cory1y2")
+check
+rm(check)
+
+# Pre-step to calculate centered baseline values by study
+data.pseudoIPD$meany1bystudy <- ave(data.pseudoIPD$y1, data.pseudoIPD$study)
+data.pseudoIPD$y1center      <- data.pseudoIPD$y1 - data.pseudoIPD$meany1bystudy
+data.pseudoIPD$groupcenter   <- data.pseudoIPD$group - 0.5
+data.pseudoIPD$arm           <- 1000*data.pseudoIPD$study + data.pseudoIPD$group
+
+#----------------------------------------------------------------------------------------------
+#                       One-stage pseusdo IPD models 
+#----------------------------------------------------------------------------------------------
+ctrl <- lmeControl(opt="optim", msMaxIter=100)
+
+
+# study specific variances estimated 
+FRstudy    <-  lme(y2 ~ y1center+ group + as.factor(study) + y1center*as.factor(study) , random= ~ -1 + groupcenter|study, weights =varIdent(form=~1|study), 
+                   control=ctrl, data=data.pseudoIPD, method='REML')
+
+
+# group specific variance estimated 
+FRgroup    <-  lme(y2 ~ y1center + group+ as.factor(study) + y1center*as.factor(study) , random= ~ -1 + groupcenter|study, weights =varIdent(form=~1|group),
+                   control=ctrl, data=data.pseudoIPD, method='REML')
+
+
+# Function to collect the results per model calculating Wald-type CIs
+groupeffect <- function(results)
+{groupeff   <- summary(results)$tTable["group",]
+# Add 95% CI extracted fom nlme using t-distribution
+CI          <- intervals(results, which="fixed")
+df          <- data.frame(CI$fixed)
+names       <- c(names(groupeff),"95% CI lwb", "95% CI upb") 
+groupeff    <- c(groupeff, df["group",]$lower, df["group",]$upper)
+names(groupeff) <- names  
+print(groupeff)
+# Estimated tau2  
+tau2 <-  VarCorr((results)) [1,]
+print("Tau2 is")
+print(tau2)
+}
+
+
+groupeffect(FRstudy)
+groupeffect(FRgroup)
+
+#----------------------------------------------------------------------------------------------
+#                       Two-stage pseudo IPD models 
+#----------------------------------------------------------------------------------------------
+
+# ANCOVA per study on pseudo IPD for subsequent two-stage MA
+
+coef_ancova <- NULL
+se_ancova   <- NULL
+
+for (i in unique(data.pseudoIPD$study ))
+{         fit <- lm(y2~ y1 + group, data.pseudoIPD[data.pseudoIPD$study==i,])
+coef_ancova   <- rbind(coef_ancova,fit$coefficients) 
+se_ancova     <- rbind(se_ancova,sqrt(diag(vcov(fit))))
+}
+
+# Prepare data for two stage MA
+data_twostage<- data.frame(study=unique(data.pseudoIPD$study), coef_group=coef_ancova[,"group"], secoef_group = se_ancova[,"group"])
+
+
+
+MA.twostage <- metagen(TE= coef_group, seTE= secoef_group, data = data_twostage, 
+                     comb.fixed = FALSE,
+                     comb.random = TRUE,
+                     method.ci = "t",
+                     method.tau = "REML",
+                     hakn = TRUE,
+                     adhoc.hakn = "ci",
+                     prediction = TRUE,
+                     sm = "MD")
+
+MA.twostage$seTE.random
+
+#-----------------------------------------------------------------------------------------------
+# Study stratified intercept and random treatment effect ANCOVA interaction effect
+
+
+# study specific variances estimated  
+FRstudyInt    <-   lme(y2 ~ y1center*as.factor(study) + y1center*group + group:meany1bystudy, random= ~ -1 + groupcenter |study, weights =varIdent(form=~1|study), 
+                       control=ctrl, data=data.pseudoIPD, method='REML')
+
+
+# Function to collect the within-trial interactions results per model using Wald-type CIs
+within_trial <- function(results)
+{inteff <- summary(results)$tTable["y1center:group",]
+# Add 95% CI extracted fom nlme using t-distribution
+CI        <- intervals(results, which="fixed")
+df        <- data.frame(CI$fixed)
+names     <- c(names(inteff),"95% CI lwb", " 95% CI upb") 
+inteff    <- c(inteff, df["y1center:group",]$lower, df["y1center:group",]$upper)
+names(inteff) <- names  
+print(inteff)
+# Estimated tau2  
+tau2 <-  VarCorr((results)) [1,]
+print("Tau2 is")
+print(tau2)
+}
+
+within_trial(FRstudyInt)
+
+# Function to collect the across-trial interactions results per model using Wald-type CIs
+across_trial <- function(results)
+{inteff <- summary(results)$tTable["group:meany1bystudy",]
+# Add 95% CI extracted fom nlme using t-distribution
+CI        <- intervals(results, which="fixed")
+df        <- data.frame(CI$fixed)
+names     <- c(names(inteff),"95% CI lwb", " 95% CI upb") 
+inteff    <- c(inteff, df["group:meany1bystudy",]$lower, df["group:meany1bystudy",]$upper)
+names(inteff) <- names  
+print(inteff)
+# Estimated tau2  
+tau2 <-  VarCorr((results)) [1,]
+print("Tau2 is")
+print(tau2)
+}
+
+across_trial(FRstudyInt)
+
+
+#----------------------------------------------------------------------------------------------
+# Ancovas per study with interaction of baseline and treatment effect on pseudo IPD for subsequent two-stage MA
+
+
+coef_ancova_int <- NULL
+se_ancova_int   <- NULL
+
+for (i in unique(data.pseudoIPD$study ))
+{         fit     <- lm(y2~ y1center + group + y1center*group, data.pseudoIPD[data.pseudoIPD$study==i,])
+coef_ancova_int   <- rbind(coef_ancova_int,fit$coefficients) 
+se_ancova_int     <- rbind(se_ancova_int, sqrt(diag(vcov(fit))))
+}
+
+# Prepare data for two stage MA
+data_twostage_int <- data.frame(study=unique(data.pseudoIPD$study), coef_group_int=coef_ancova_int[,"y1center:group"], secoef_group_int = se_ancova_int[,"y1center:group"])
+
+MA.twostage_int <- metagen(TE= coef_group_int, seTE= secoef_group_int, data = data_twostage_int, 
+                       comb.fixed = FALSE,
+                       comb.random = TRUE,
+                       method.ci = "t",
+                       method.tau = "REML",
+                       hakn = TRUE,
+                       adhoc.hakn = "ci",
+                       prediction = TRUE)
+                      
+
+MA.twostage_int$seTE.random
+
+
+#----------------------------------------------------------------------------------------------
+#                            Meta-regression 
+#----------------------------------------------------------------------------------------------
+
+# Using mean of treatment group at baseline
+covariate1       <- with(data.AD_wide, MeanBaseline_1)
+metaregressionT <- metareg(~ covariate1, x= MA.random.final)
+metaregressionT
+
+# Using mean of control group at baseline
+covariate0 <-with(data.AD_wide, MeanBaseline_0)
+metaregressionC <- metareg(~ covariate0, x= MA.random.final)
+metaregressionC
+
+
+
+
