@@ -5,7 +5,7 @@ library(reshape2)
 library(nlme)
 library(meta)
 
-data.AD <- read_excel("C:/Users/papadika/OneDrive - Danone/Desktop/Thesis prep/For Intro/Material for SMD/Final example/MDD.xlsx",
+data.AD <- read_excel("MDD.xlsx",
                       col_types = c("numeric", "text", "numeric",
                                     "numeric", "numeric", "numeric",
                                     "numeric", "numeric", "numeric",
